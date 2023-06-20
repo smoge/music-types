@@ -4,7 +4,7 @@ The code outlined here provides a starting point for building a music framework 
 
 This initial Haskell module (just a sketch for now) offers a set of types and functions for creating and managing basic musical data structures. The code provided in the "Rtm" module defines several data types and functions for building music compositions (especially rhythmic trees) in Haskell. 
 
-## PCO
+## Quick tests:
 
 ```haskell
 -- Example usage
