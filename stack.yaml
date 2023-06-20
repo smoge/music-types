@@ -20,24 +20,16 @@
 resolver:
   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/24.yaml
 
-# User packages to be built.
-# Various formats can be used as shown in the example below.
-#
-# packages:
-# - some-directory
-# - https://example.com/foo/bar/baz-0.0.2.tar.gz
-#   subdirs:
-#   - auto-update
-#   - wai
 packages:
 - .
+- parsec-3.1.16.1
+- pretty-show-1.10
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-extra-deps:
-- parsec-3.1.16.1
-- pretty-show-1.10
+#extra-deps:
+
 
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
