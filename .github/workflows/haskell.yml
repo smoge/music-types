@@ -36,7 +36,7 @@ jobs:
 
   # HLint can be a distinct Job, possibly limited to changed files
   hlint:
-    # ...
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: haskell/actions/hlint-setup@v1
