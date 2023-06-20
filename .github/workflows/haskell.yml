@@ -1,6 +1,4 @@
 name: Haskell CI
-
-
 on: [push]
 jobs:
   runhaskell:
@@ -15,6 +13,3 @@ jobs:
           enable-stack: true
           stack-version: '2.9.3'
       - run: runhaskell app/Main.hs
-      
-      
-      
