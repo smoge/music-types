@@ -1,24 +1,25 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Rtm
   ( RtmMeasure
   , RtmValue(..)
   , RtmProportions(..)
-  , Rtm(..)
   , getRtmProportions
   , formatRtmProportions
   , formatRtmValue
   ) where
 
-import           Control.Applicative ((*>), (<$>), (<*))
-import           Data.Either         (fromRight)
-import           Data.Ratio          ((%))
-import           GHC.Generics        (Generic)
-import           Numeric.Natural
-import           Text.Parsec
-import           Text.Parsec.String  (Parser)
-import           Text.Printf
-import           Text.Show.Pretty    (ppShow)
+import Control.Applicative ((*>), (<$>), (<*))
+import Data.Either         (fromRight)
+import Data.Ratio          ((%))
+import GHC.Generics        (Generic)
+import Numeric.Natural
+import Text.Parsec
+import Text.Parsec.String  (Parser)
+import Text.Printf
+import Text.Show.Pretty    (ppShow)
 
 type Duration = Rational
 
@@ -113,5 +114,5 @@ testSumValues = do
   - https://support.ircam.fr/docs/om/om6-manual/co/RT1.html
   - https://www.tenor-conference.org/proceedings/2017/18_Jacquemard_tenor2017.pdf
   - http://repmus.ircam.fr/_media/jacquemard/strn-mcm.pdf
-  
+
 -}
