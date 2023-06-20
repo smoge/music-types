@@ -7,7 +7,7 @@ This initial Haskell module (just a sketch for now) offers a set of types and fu
 ## Quick tests:
 
 ```haskell
--- Example usage
+-- Quick test
 main :: IO ()
 main = do
   let input = "(1 -1 (1 (1 -1 1)))"
@@ -21,6 +21,48 @@ main = do
       putStrLn $ formatRtmProportions 0 rtm
       let totalDuration = sumValues rtm
       putStrLn $ "Total duration: " ++ show totalDuration
+
+
+
+-- Quick test
+main :: IO ()
+main = do
+    let result = fromRight (error "Parsing error") (getRtmProportions "(1 -1 (1 (1 (1 (1 -1 1)) 1)) 1 (1 (1 -1 (1 (1 1 1 1 -1)) 1)) 1)")
+    printf (formatRtmProportions 0 result)
+
+{- 
+
+RtmNote 1
+RtmRest 1
+RtmLeaf
+  1
+  RtmNote 1
+  RtmLeaf
+    1
+    RtmNote 1
+    RtmRest 1
+    RtmNote 1
+
+  RtmNote 1
+
+RtmNote 1
+RtmLeaf
+  1
+  RtmNote 1
+  RtmRest 1
+  RtmLeaf
+    1
+    RtmNote 1
+    RtmNote 1
+    RtmNote 1
+    RtmNote 1
+    RtmRest 1
+
+  RtmNote 1
+
+RtmNote 1
+
+-}
 ```
 
 ## Contribution
