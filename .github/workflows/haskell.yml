@@ -5,7 +5,7 @@ on: [push]
 name: build
 jobs:
   runhaskell:
-    name: Hello World
+    name: Main
     runs-on: ubuntu-latest # or macOS-latest, or windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,5 +19,3 @@ jobs:
       
       
       
-name: Haskell Linter
-uses: domdere/haskell-lint-action@v1.0.2
