@@ -2,25 +2,15 @@
 
 The code outlined here provides a starting point for building a music framework for music composition in Haskell.
 
-This initial Haskell module (just a sketch for now) offers a set of types and functions for creating and managing basic musical data structures. The code provided in the "Rtm" module defines several data types and functions for building music compositions (especially rhythmic trees) in Haskell. I
+This initial Haskell module (just a sketch for now) offers a set of types and functions for creating and managing basic musical data structures. The code provided in the "Rtm" module defines several data types and functions for building music compositions (especially rhythmic trees) in Haskell. 
 
-The module also includes functions for parsing and formatting `RtmProportions` and `RtmValue` objects, making them more human-readable. Additionally, the `sumValues` function calculates the total duration of a `RtmProportions` object based on its individual notes, rests, and leaves. A testing function, `testSumValues`, is also provided to verify the correctness of `sumValues`.
-
-## Usage
-
-To use the `Rtm` module, you can import it into your Haskell code:
-
-```haskell
-import Rtm
-```
-
-You can then create instances of `RtmProportions` and `RtmValue`, manipulate them, and use the provided functions to parse and format the musical data.
+## PCO
 
 ```haskell
 -- Example usage
 main :: IO ()
 main = do
-  let input = "(1 1 (1 (1 1 1)))"
+  let input = "(1 -1 (1 (1 -1 1)))"
   let proportions = getRtmProportions input
   case proportions of
     Left err -> putStrLn $ "Parsing error: " ++ err
