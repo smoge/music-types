@@ -106,3 +106,12 @@ testSumValues = do
   putStrLn $ "Sum of values: " ++ show result
 
 
+{-
+
+# Some references:
+
+  - https://support.ircam.fr/docs/om/om6-manual/co/RT1.html
+  - https://www.tenor-conference.org/proceedings/2017/18_Jacquemard_tenor2017.pdf
+  - http://repmus.ircam.fr/_media/jacquemard/strn-mcm.pdf
+  
+-}
