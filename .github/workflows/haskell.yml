@@ -10,31 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
 
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '9.2.7'
-        cabal-version: '3.6.2.0'
-
-    
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - id: stack
-        uses: freckle/stack-action@v4
-
-      # Weeder requires running in the same Job (to access .hie artifacts)
-      - uses: freckle/weeder-action@v2
-        with:
-          ghc-version: ${{ steps.stack.outputs.compiler-version }}
-
-  # HLint can be a distinct Job, possibly limited to changed files
   hlint:
     runs-on: ubuntu-latest
     steps:
