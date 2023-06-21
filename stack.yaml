@@ -9,7 +9,7 @@
 # to be used for project dependencies. For example:
 #
 # resolver: lts-3.5
-# resolver: nightly-2015-09-21
+resolver: nightly-2023-06-21
 # resolver: ghc-7.10.2
 #
 # The location of a snapshot can be provided as a file or url. Stack assumes
@@ -17,19 +17,22 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/24.yaml
+# resolver:
+#   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/26.yaml
 
 packages:
 - .
-- parsec-3.1.16.1
-- pretty-show-1.10
+
+
+
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-#extra-deps:
-
+extra-deps:
+- QuickCheck-2.14.3@sha256:f03d2f404d5ba465453d0fbc1944832789a759fe7c4f9bf8616bc1378a02fde4,7847
+- parsec-3.1.16.1@sha256:5769242043b01bf759b07b7efedcb19607837ee79015fcddde34645664136aed,4691
+- pretty-show-1.10
 
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
