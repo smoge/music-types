@@ -55,7 +55,7 @@ executable music-types-exe
 
 test-suite music-types-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: RtmTest.hs
   other-modules:
       Paths_music_types
   hs-source-dirs:
