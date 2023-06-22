@@ -1,62 +1,29 @@
-{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module Parsers.LISPListParser
-( parseLISPFromString
-, lispToList
-) where
+module Main where
 
-import           Text.Parsec          (ParseError, many, parse, (<|>))
-import           Text.Parsec.Language (haskellDef)
-import           Text.Parsec.String   (Parser)
-import qualified Text.Parsec.Token    as Token
+import Data.Attoparsec.ByteString.Char8
+import qualified Data.ByteString.Char8 as B
+import Control.Applicative
+import Data.Char (isDigit)
 
+data Value = Number Int | List [Value] deriving Show
 
--- Algebraic data type to represent either an Atom (Int) or a List (nested or not)
-data LISP = Atom Int | List [LISP] deriving Show
+value :: Parser Value
+value = List <$> (char '(' *> sepBy value space <* char ')')
+        <|> Number . read . B.unpack <$> takeWhile1 isDigitOrMinus
 
--- Lexer to recognize integers and parentheses
-lexer :: Token.TokenParser ()
-lexer = Token.makeTokenParser haskellDef
+isDigitOrMinus :: Char -> Bool
+isDigitOrMinus c = Data.Char.isDigit c || c == '-'
 
-parens :: Parser a -> Parser a
-parens = Token.parens lexer
+parseLISP :: B.ByteString -> Either String Value
+parseLISP input = parseOnly (value <* endOfInput) input
 
-integer :: Parser Int
-integer = fromIntegral <$> Token.integer lexer
-
--- Parser for the LISP structure
-parseLISP :: Parser LISP
-parseLISP = parseAtom <|> parseList
-
--- Parser for the Atoms
-parseAtom :: Parser LISP
-parseAtom = Atom <$> integer
-
--- Parser for the Lists
-parseList :: Parser LISP
-parseList = List <$> parens (many parseLISP)
-
--- Function to parse a string into a LISP data structure
-parseLISPFromString :: String -> Either ParseError LISP
-parseLISPFromString = parse parseLISP "LISP"
-
--- Example usage
 main :: IO ()
 main = do
-    let input = "(1 1 1 1 (1 (1 1 1 1 1)))"
-    print $ parseLISPFromString input
+    let example = "(1 (2 (3 -4)) 5 (6 (7 (8 (-9 10)))))"
+    let parsed = parseLISP $ B.pack example
+    print parsed
 
+-- Right (List [Number 1,List [Number 2,List [Number 3,Number (-4)]],Number 5,List [Number 6,List [Number 7,List [Number 8,List [Number (-9),Number 10]]]]])
 
-lispToList :: Either ParseError LISP -> Maybe [Int]
-lispToList (Right (List lisp)) = Just $ concatMap atomToList lisp
-lispToList _                   = Nothing
-
--- lispToList $ parseLISPFromString "(1 1 1 1 (1 (1 1 1 1 1)))"
--- Just [1,1,1,1,1,1,1,1,1,1]
-
--- atomToList :: LISP -> [Int]
--- atomToList (Atom x)    = [x]
--- atomToList (List lisp) = concatMap atomToList lisp
-
--- stringToList :: String -> Maybe [Int]
--- stringToList input = lispToList $ parseLISPFromString input
