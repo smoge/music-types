@@ -7,14 +7,24 @@ module Barlow
 where
 
 import           Data.List
+-- import           Math.Primes
+-- import           Math.Primes
+
 
 primeFactors :: Integer -> [Integer]
-primeFactors n = go n 2 []
-  where
-    go n i factors
-      | i * i > n = if n > 1 then factors ++ [n] else factors
-      | n `mod` i == 0 = go (n `div` i) i (factors ++ [i])
-      | otherwise = go n (i + 1) factors
+primeFactors num = unfoldr f (testFactors num, num) where
+    f (_, 1) = Nothing
+    f (ps, n) = case find (\p -> (n `rem` p) == 0) ps of
+                        Nothing -> Just (n, ([], 1)) -- prime
+                        Just fact -> Just (fact, (dropWhile (< fact) ps, n `div` fact))
+
+-- primeFactors :: Integer -> [Integer]
+-- primeFactors n = go n 2 []
+--   where
+--     go n i factors
+--       | i * i > n = if n > 1 then factors ++ [n] else factors
+--       | n `mod` i == 0 = go (n `div` i) i (factors ++ [i])
+--       | otherwise = go n (i + 1) factors
 
 wFunc :: Integer -> Integer
 wFunc 0 = 0
