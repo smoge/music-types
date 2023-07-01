@@ -59,3 +59,11 @@ main = do
   print $ indispensability 5 [2, 3, 2, 2, 2]
   print $ indispensability 6 [2, 3, 2, 2, 2]
   print $ indispensability 0 [2, 3, 2, 2, 2]
+
+-- 47
+-- 0
+-- 24
+-- 12
+-- 36
+-- 6
+-- 23
