@@ -1,13 +1,10 @@
 module Barlow
   ( primeFactors,
-    wFunc,
-    basicIndispensability,
-    indispensability,
-    main,
+    indispensability
   )
 where
 
-import Data.List
+import           Data.List
 
 -- Function to calculate prime factors of a number
 primeFactors :: Integer -> [Integer]
