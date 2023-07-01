@@ -45,11 +45,11 @@ indispensability pulse primes =
   sum
     [ mult * basic
     | r <- [0 .. z - 1]
-    , let bot = product $ take (r + 1) (drop (z + 1 - r) extendedPrimes)
+    , let bottom = product $ take (r + 1) (drop (z + 1 - r) extendedPrimes)
     , let mult = product $ take (z - r) extendedPrimes
     , let modulo = extendedPrimes !! (z - r)
     , let temp = fromIntegral ((pulse - 2) `mod` top)
-    , let temp' = 1 + floor (temp / fromIntegral bot)
+    , let temp' = 1 + floor (temp / fromIntegral bottom)
     , let temp'' = 1 + fromIntegral (temp' `mod` modulo)
     , let basic = basicIndispensability temp'' modulo
     ]
