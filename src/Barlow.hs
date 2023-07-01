@@ -8,23 +8,22 @@ where
 
 import           Data.List
 -- import           Math.Primes
--- import           Math.Primes
 
-
-primeFactors :: Integer -> [Integer]
-primeFactors num = unfoldr f (testFactors num, num) where
-    f (_, 1) = Nothing
-    f (ps, n) = case find (\p -> (n `rem` p) == 0) ps of
-                        Nothing -> Just (n, ([], 1)) -- prime
-                        Just fact -> Just (fact, (dropWhile (< fact) ps, n `div` fact))
 
 -- primeFactors :: Integer -> [Integer]
--- primeFactors n = go n 2 []
---   where
---     go n i factors
---       | i * i > n = if n > 1 then factors ++ [n] else factors
---       | n `mod` i == 0 = go (n `div` i) i (factors ++ [i])
---       | otherwise = go n (i + 1) factors
+-- primeFactors num = unfoldr f (testFactors num, num) where
+--     f (_, 1) = Nothing
+--     f (ps, n) = case find (\p -> (n `rem` p) == 0) ps of
+--                         Nothing -> Just (n, ([], 1)) -- prime
+--                         Just fact -> Just (fact, (dropWhile (< fact) ps, n `div` fact))
+
+primeFactors :: Integer -> [Integer]
+primeFactors n = go n 2 []
+  where
+    go n i factors
+      | i * i > n = if n > 1 then factors ++ [n] else factors
+      | n `mod` i == 0 = go (n `div` i) i (factors ++ [i])
+      | otherwise = go n (i + 1) factors
 
 wFunc :: Integer -> Integer
 wFunc 0 = 0
@@ -51,13 +50,12 @@ indispensability pulse primes =
     , let modulo = extendedPrimes !! (z - r)
     , let temp = fromIntegral ((pulse - 2) `mod` top)
     , let temp' = 1 + floor (temp / fromIntegral bot)
-    , let temp'' = fromIntegral (temp' `mod` modulo)
-    , let temp''' = 1 + temp''
-    , let basic = basicIndispensability temp''' modulo
+    , let temp'' = 1 + fromIntegral (temp' `mod` modulo)
+    , let basic = basicIndispensability temp'' modulo
     ]
   where
     extendedPrimes = [1] ++ primes ++ [1]
-    z = length extendedPrimes - 2
+    z = length primes
     top = product $ take (z + 1) extendedPrimes
 
 main :: IO ()
