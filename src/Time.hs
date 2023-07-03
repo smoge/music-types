@@ -7,7 +7,9 @@ module Time (
     Tempo(..),
     toSeconds
 ) where
-import           Data.Ratio ((%))
+import           Data.Ratio  ((%))
+import           Text.Printf
+
 
 type Duration = Rational
 
@@ -25,6 +27,16 @@ measureDuration (TS num denom) = num Data.Ratio.% denom
 toSeconds :: Duration -> Tempo -> Double
 toSeconds duration (BPM bpm) =  fromRational duration / (fromIntegral bpm / 60)
 
+formatTime :: Double -> String
+formatTime seconds =
+  let totalMilliseconds = round (seconds * 1000)
+      milliseconds = totalMilliseconds `mod` 1000
+      totalSeconds = totalMilliseconds `div` 1000
+      minutes = totalSeconds `div` 60
+      remainingSeconds = totalSeconds `mod` 60
+  in printf "%02d:%02d:%03d" minutes remainingSeconds milliseconds
+
+
 
 {- test -}
 d :: Duration
@@ -35,3 +47,10 @@ t = BPM 120
 
 result :: Double
 result = toSeconds d t
+
+main :: IO ()
+main = do
+  let formatted = formatTime result
+  putStrLn formatted
+
+-- "00:00:250"
