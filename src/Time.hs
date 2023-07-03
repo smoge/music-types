@@ -51,14 +51,25 @@ formatTime seconds =
       remainingSeconds = totalSeconds `mod` 60
   in printf "%02d:%02d:%03d" (minutes :: Int) (remainingSeconds :: Int) (milliseconds :: Int)
 
+-- data RMeasureComponent = DurationInRMeasure Duration | TupletInRMeasure Tuplet
+--   deriving (Eq, Show)
+
+data RMeasureComponent where
+    DurationInRMeasure :: Duration -> RMeasureComponent
+    TupletInRMeasure :: Tuplet -> RMeasureComponent
+    deriving (Eq, Show)
+
 data RMeasure where
-  RMeasure :: {timeSignature :: TimeSignature,
-                 durations :: [Duration]}
-                -> RMeasure
-  deriving (Eq, Show)
+    RMeasure :: TimeSignature -> [RMeasureComponent] -> RMeasure
+    deriving (Eq, Show)
 
 isValidRMeasure :: RMeasure -> Bool
-isValidRMeasure (RMeasure ts ds) = sum ds == measureDuration ts
+isValidRMeasure (RMeasure ts components) = totalDuration == measureDuration ts
+    where
+        totalDuration = sum $ map componentDuration components
+        componentDuration (DurationInRMeasure d) = d
+        componentDuration (TupletInRMeasure (Tuplet _ _ totalDur multipliedDur)) = multipliedDur
+
 
 data TupletComponent = DurationComponent Duration | NestedTupletComponent Tuplet
   deriving (Eq, Show)
@@ -86,6 +97,18 @@ calculateTotalDuration components =
   where
     calculateDuration (DurationComponent duration) = duration
     calculateDuration (NestedTupletComponent tuplet) = tupletTotalDuration tuplet * tupletMultiplier tuplet
+
+formatRMeasure :: RMeasure -> String
+formatRMeasure (RMeasure (TS numerator denominator) components) =
+    "RMeasure (timeSignature: " ++ show numerator ++ " / " ++ show denominator ++ ")\n"
+    ++ concatMap formatComponent components
+  where
+    formatComponent :: RMeasureComponent -> String
+    formatComponent (DurationInRMeasure duration) =
+        "  Duration: " ++ show duration ++ "\n"
+    formatComponent (TupletInRMeasure tuplet) =
+        "  " ++ formatTuplet tuplet ++ "\n"
+
 
 createTuplet :: Rational -> [TupletComponent] -> Tuplet
 createTuplet multiplier components =
@@ -121,11 +144,11 @@ t = BPM 120
 secs :: Double
 secs = toSeconds d (BPM 120)
 
-rm :: RMeasure
-rm = RMeasure (TS 4 4) [d, d, d, d]
+-- rm :: RMeasure
+-- rm = RMeasure (TS 4 4) [d, d, d, d]
 
-isValid :: Bool
-isValid = isValidRMeasure rm
+-- isValid :: Bool
+-- isValid = isValidRMeasure rm
 
 test1 :: IO ()
 test1 = do
@@ -163,6 +186,23 @@ Tuplet: (ratio: 4 % 5, duration: 1 % 2)
     Duration: 1 % 8
     Duration: 1 % 8
     Duration: 1 % 8
+  Duration: 1 % 8
+  Duration: 1 % 8
+-}
+
+testRMeasure :: IO ()
+testRMeasure = do
+    let myDuration = 1 % 8 :: Duration
+        myTuplet = createTuplet (2 % 3) [DurationComponent (1 % 8), DurationComponent (1 % 8), DurationComponent (1 % 8)]
+        myRMeasure = RMeasure (TS 3 8) [DurationInRMeasure myDuration, TupletInRMeasure myTuplet]
+
+    putStrLn $ formatRMeasure myRMeasure
+
+{- FIXME
+RMeasure (timeSignature: 3 / 8)
+  Duration: 1 % 8
+  Tuplet: (ratio: 2 % 3, duration: 1 % 4)
+  Duration: 1 % 8
   Duration: 1 % 8
   Duration: 1 % 8
 -}
