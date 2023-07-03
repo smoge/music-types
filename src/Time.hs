@@ -60,14 +60,6 @@ isValidRMeasure (RMeasure ts ds) = sum ds == measureDuration ts
 data TupletComponent = DurationComponent Duration | NestedTupletComponent Tuplet
   deriving (Eq, Show)
 
--- data Tuplet = Tuplet
---   { tupletMultiplier         :: Rational
---   , tupletDurations          :: [Either Duration Tuplet]
---   , tupletTotalDuration      :: Duration
---   , tupletMultipliedDuration :: Duration
---   }
---   deriving (Eq, Show)
-
 data Tuplet = Tuplet
   { tupletMultiplier         :: Rational
   , tupletComponents         :: [TupletComponent]
