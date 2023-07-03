@@ -137,3 +137,5 @@ test4 = do
       durations = [Left (1 % 8), Right innerTuplet, Left (1 % 8), Left (1 % 8)]
       tuplet = createTuplet (4 % 5) durations
   putStrLn $ "Tuplet: " ++ show tuplet
+
+-- Tuplet: Tuplet {tupletMultiplier = 4 % 5, tupletDurations = [Left (1 % 8),Right (Tuplet {tupletMultiplier = 2 % 3, tupletDurations = [Left (1 % 8),Left (1 % 8),Left (1 % 8)], tupletTotalDuration = 3 % 8, tupletMultipliedDuration = 1 % 4}),Left (1 % 8),Left (1 % 8)], tupletTotalDuration = 5 % 8, tupletMultipliedDuration = 1 % 2}
