@@ -9,7 +9,10 @@ module Time (
     Tempo(..),
     toSeconds,
     formatTime,
-    isValidRMeasure
+    isValidRMeasure,
+    Tuplet(..),
+    calculateTotalDuration,
+    createTuplet
 ) where
 import           Data.Ratio  ((%))
 import           Text.Printf
@@ -60,12 +63,12 @@ isValidRMeasure (RMeasure ts ds) = sum ds == measureDuration ts
 data TupletComponent = DurationComponent Duration | NestedTupletComponent Tuplet
   deriving (Eq, Show)
 
-data Tuplet = Tuplet
-  { tupletMultiplier         :: Rational
-  , tupletComponents         :: [TupletComponent]
-  , tupletTotalDuration      :: Duration
-  , tupletMultipliedDuration :: Duration
-  }
+data Tuplet where
+  Tuplet :: {tupletMultiplier :: Rational,
+               tupletComponents :: [TupletComponent],
+               tupletTotalDuration :: Duration,
+               tupletMultipliedDuration :: Duration}
+              -> Tuplet
   deriving (Eq, Show)
 
 calculateTotalDuration :: [TupletComponent] -> Duration
@@ -77,9 +80,26 @@ calculateTotalDuration components =
 
 createTuplet :: Rational -> [TupletComponent] -> Tuplet
 createTuplet multiplier components =
-  let totalDuration = calculateTotalDuration components
-      multipliedDuration = totalDuration * multiplier
-  in Tuplet multiplier components totalDuration multipliedDuration
+  let totalDur = calculateTotalDuration components
+      multipliedDuration = totalDur * multiplier
+  in Tuplet multiplier components totalDur multipliedDuration
+
+
+formatTuplet :: Tuplet -> String
+formatTuplet tuplet = formatTupletWithIndentation tuplet 0
+
+formatTupletWithIndentation :: Tuplet -> Int -> String
+formatTupletWithIndentation (Tuplet multiplier components _ _) indentationLevel =
+    let indentation = replicate (indentationLevel * 2) ' '
+        formattedComponents = concatMap (formatComponent (indentationLevel + 1)) components
+    in indentation ++ "Tuplet (multiplier: " ++ show multiplier ++ ")\n" ++ formattedComponents
+
+formatComponent :: Int -> TupletComponent -> String
+formatComponent indentationLevel (DurationComponent duration) =
+    replicate (indentationLevel * 2) ' ' ++ "Duration: " ++ show duration ++ "\n"
+formatComponent indentationLevel (NestedTupletComponent tuplet) =
+    formatTupletWithIndentation tuplet indentationLevel
+
 
 
 {- TESTS -}
@@ -127,3 +147,21 @@ test3 = do
 
 -- Tuplet {tupletMultiplier = 4 % 5, tupletComponents = [DurationComponent (1 % 8),NestedTupletComponent (Tuplet {tupletMultiplier = 2 % 3, tupletComponents = [DurationComponent (1 % 8),DurationComponent (1 % 8),DurationComponent (1 % 8)], tupletTotalDuration = 3 % 8, tupletMultipliedDuration = 1 % 4}),DurationComponent (1 % 8),DurationComponent (1 % 8)], tupletTotalDuration = 5 % 8, tupletMultipliedDuration = 1 % 2}
 
+
+test4:: IO ()
+test4 = do
+    let innerTuplet = createTuplet (2 % 3) [DurationComponent (1 % 8), DurationComponent (1 % 8), DurationComponent (1 % 8)]
+        components = [DurationComponent (1 % 8), NestedTupletComponent innerTuplet, DurationComponent (1 % 8), DurationComponent (1 % 8)]
+        tuplet = createTuplet (4 % 5) components
+    putStrLn $ formatTuplet tuplet
+
+{-
+Tuplet (multiplier: 4 % 5)
+  Duration: 1 % 8
+  Tuplet (multiplier: 2 % 3)
+    Duration: 1 % 8
+    Duration: 1 % 8
+    Duration: 1 % 8
+  Duration: 1 % 8
+  Duration: 1 % 8
+-}
