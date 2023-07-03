@@ -4,7 +4,8 @@ module Time (
     TimeSignature(..),
     Duration,
     measureDuration,
-    Tempo(..)
+    Tempo(..),
+    toSeconds
 ) where
 
 import           Data.Ratio
@@ -21,3 +22,5 @@ data TimeSignature where
 measureDuration :: TimeSignature -> Duration
 measureDuration (TS num denom) = num % denom
 
+toSeconds :: Tempo -> Duration -> Double
+toSeconds (BPM bpm) duration = fromRational (duration / (toRational bpm / 60))
