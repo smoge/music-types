@@ -57,6 +57,28 @@ data RMeasure where
 isValidRMeasure :: RMeasure -> Bool
 isValidRMeasure (RMeasure ts ds) = sum ds == measureDuration ts
 
+-- data Tuplet = Tuplet
+--   { tupletMultiplier :: Rational
+--   , tupletDurations  :: [Duration]
+--   }
+--   deriving (Eq, Show)
+
+data Tuplet = Tuplet
+  { tupletMultiplier         :: Rational
+  , tupletDurations          :: [Duration]
+  , tupletTotalDuration      :: Duration
+  , tupletMultipliedDuration :: Duration
+  }
+  deriving (Eq, Show)
+
+createTuplet :: Rational -> [Duration] -> Tuplet
+createTuplet multiplier durs =
+  let sumDuration = totalDuration durs
+      multipliedDuration = sumDuration * multiplier
+  in Tuplet multiplier durs sumDuration multipliedDuration
+
+
+
 
 {- test -}
 
@@ -92,3 +114,12 @@ test2 = do
   putStrLn formatted
 
 -- "00:00:250"
+
+test3 :: IO ()
+test3 = do
+    let multiplier = 2 % 3
+        durs = [1 % 8, 1 % 8, 1 % 8]
+        tuplet = createTuplet multiplier durs
+    putStrLn $ "Tuplet: " ++ show tuplet
+
+-- Tuplet: Tuplet {tupletMultiplier = 2 % 3, tupletDurations = [1 % 8,1 % 8,1 % 8], tupletTotalDuration = 3 % 8, tupletMultipliedDuration = 1 % 4}
