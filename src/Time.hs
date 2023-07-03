@@ -63,21 +63,49 @@ isValidRMeasure (RMeasure ts ds) = sum ds == measureDuration ts
 --   }
 --   deriving (Eq, Show)
 
+-- data Tuplet = Tuplet
+--   { tupletMultiplier         :: Rational
+--   , tupletDurations          :: [Duration]
+--   , tupletTotalDuration      :: Duration
+--   , tupletMultipliedDuration :: Duration
+--   }
+--   deriving (Eq, Show)
+
+-- createTuplet :: Rational -> [Duration] -> Tuplet
+-- createTuplet multiplier durs =
+--   let sumDuration = totalDuration durs
+--       multipliedDuration = sumDuration * multiplier
+--   in Tuplet multiplier durs sumDuration multipliedDuration
+
+
+
 data Tuplet = Tuplet
   { tupletMultiplier         :: Rational
-  , tupletDurations          :: [Duration]
+  , tupletDurations          :: [Either Duration Tuplet]
   , tupletTotalDuration      :: Duration
   , tupletMultipliedDuration :: Duration
   }
   deriving (Eq, Show)
 
-createTuplet :: Rational -> [Duration] -> Tuplet
-createTuplet multiplier durs =
-  let sumDuration = totalDuration durs
-      multipliedDuration = sumDuration * multiplier
-  in Tuplet multiplier durs sumDuration multipliedDuration
+calculateTotalDuration :: [Either Duration Tuplet] -> Duration
+calculateTotalDuration durations =
+  sum $ map calculateDuration durations
+  where
+    calculateDuration (Left duration) = duration
+    calculateDuration (Right tuplet) = tupletTotalDuration tuplet * tupletMultiplier tuplet
 
+calculateTotalDurationTuplet :: Tuplet -> Duration
+calculateTotalDurationTuplet (Tuplet _ durations _ _) =
+  sum $ map calculateDuration durations
+  where
+    calculateDuration (Left duration) = duration
+    calculateDuration (Right tuplet) = tupletTotalDuration tuplet * tupletMultiplier tuplet
 
+createTuplet :: Rational -> [Either Duration Tuplet] -> Tuplet
+createTuplet multiplier durations =
+  let totalDuration = calculateTotalDuration durations
+      multipliedDuration = totalDuration * multiplier
+  in Tuplet multiplier durations totalDuration multipliedDuration
 
 
 {- test -}
@@ -123,3 +151,11 @@ test3 = do
     putStrLn $ "Tuplet: " ++ show tuplet
 
 -- Tuplet: Tuplet {tupletMultiplier = 2 % 3, tupletDurations = [1 % 8,1 % 8,1 % 8], tupletTotalDuration = 3 % 8, tupletMultipliedDuration = 1 % 4}
+
+
+test4 :: IO ()
+test4 = do
+  let innerTuplet = createTuplet (2 % 3) [Left (1 % 8), Left (1 % 8), Left (1 % 8)]
+      durations = [Left (1 % 8), Right innerTuplet, Left (1 % 8), Left (1 % 8)]
+      tuplet = createTuplet (4 % 5) durations
+  putStrLn $ "Tuplet: " ++ show tuplet
