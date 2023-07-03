@@ -1,4 +1,7 @@
 {-# LANGUAGE GADTs #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "[]" #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Time (
     TimeSignature(..),
@@ -8,19 +11,27 @@ module Time (
     toSeconds
 ) where
 
-import           Data.Ratio
-
 type Duration = Rational
 
-newtype Tempo where
-  BPM :: Int -> Tempo
+data Tempo = BPM Int
+  deriving (Eq, Ord, Show)
 
-data TimeSignature where
-    TS :: { tsNum :: Integer, tsDenom :: Integer } -> TimeSignature
-    deriving (Eq, Ord, Show)
+data TimeSignature = TS { numerator :: Integer, denominator :: Integer }
+  deriving (Eq, Ord, Show)
 
 measureDuration :: TimeSignature -> Duration
 measureDuration (TS num denom) = num % denom
 
-toSeconds :: Tempo -> Duration -> Double
-toSeconds (BPM bpm) duration = fromRational (duration / (toRational bpm / 60))
+toSeconds :: Duration -> Tempo -> Double
+toSeconds duration (BPM bpm) =  fromRational duration / (fromIntegral bpm / 60)
+
+
+{- test -}
+d :: Duration
+d = 1 % 2
+
+t :: Tempo
+t = BPM 110
+
+result :: Double
+result = toSeconds d t
