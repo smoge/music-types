@@ -64,11 +64,11 @@ data RMeasure where
     deriving (Eq, Show)
 
 isValidRMeasure :: RMeasure -> Bool
-isValidRMeasure (RMeasure ts components) = totalDuration == measureDuration ts
+isValidRMeasure (RMeasure ts components) = totalDur == measureDuration ts
     where
-        totalDuration = sum $ map componentDuration components
+        totalDur = sum $ map componentDuration components
         componentDuration (DurationInRMeasure d) = d
-        componentDuration (TupletInRMeasure (Tuplet _ _ totalDur multipliedDur)) = multipliedDur
+        componentDuration (TupletInRMeasure (Tuplet _ _ _ multipliedDur)) = multipliedDur
 
 
 data TupletComponent = DurationComponent Duration | NestedTupletComponent Tuplet
