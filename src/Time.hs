@@ -28,6 +28,8 @@ data TimeSignature where
           -> TimeSignature
   deriving (Eq, Ord, Show)
 
+
+
 totalDuration :: [Duration] -> Duration
 totalDuration = sum
 
@@ -69,6 +71,15 @@ data Tuplet where
               -> Tuplet
   deriving (Eq, Show)
 
+getTupletMultipliedDuration :: Tuplet -> Duration
+getTupletMultipliedDuration = tupletMultipliedDuration
+
+getTupletMultiplier :: Tuplet -> Rational
+getTupletMultiplier = tupletMultiplier
+
+getTupletTotalDuration :: Tuplet -> Duration
+getTupletTotalDuration = tupletTotalDuration
+
 calculateTotalDuration :: [TupletComponent] -> Duration
 calculateTotalDuration components =
   sum $ map calculateDuration components
@@ -86,10 +97,10 @@ formatTuplet :: Tuplet -> String
 formatTuplet tuplet = formatTupletWithIndentation tuplet 0
 
 formatTupletWithIndentation :: Tuplet -> Int -> String
-formatTupletWithIndentation (Tuplet multiplier components _ _) indentationLevel =
+formatTupletWithIndentation (Tuplet multiplier components _ dur) indentationLevel =
     let indentation = replicate (indentationLevel * 2) ' '
         formattedComponents = concatMap (formatComponent (indentationLevel + 1)) components
-    in indentation ++ "Tuplet (multiplier: " ++ show multiplier ++ ")\n" ++ formattedComponents
+    in indentation ++ "Tuplet: (ratio: " ++ show multiplier ++ ", duration: " ++ show dur ++ ")\n" ++ formattedComponents
 
 formatComponent :: Int -> TupletComponent -> String
 formatComponent indentationLevel (DurationComponent duration) =
@@ -144,10 +155,11 @@ test4 = do
         components = [DurationComponent (1 % 8), NestedTupletComponent innerTuplet, DurationComponent (1 % 8), DurationComponent (1 % 8)]
         tuplet = createTuplet (4 % 5) components
     putStrLn $ formatTuplet tuplet
+
 {-
-Tuplet (multiplier: 4 % 5)
+Tuplet: (ratio: 4 % 5, duration: 1 % 2)
   Duration: 1 % 8
-  Tuplet (multiplier: 2 % 3)
+  Tuplet: (ratio: 2 % 3, duration: 1 % 4)
     Duration: 1 % 8
     Duration: 1 % 8
     Duration: 1 % 8
