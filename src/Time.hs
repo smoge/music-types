@@ -26,6 +26,12 @@ data TimeSignature where
           -> TimeSignature
   deriving (Eq, Ord, Show)
 
+totalDuration :: [Duration] -> Duration
+totalDuration = sum
+
+durationRatio :: Duration -> Duration -> Rational
+durationRatio d1 d2 = d1 / d2
+
 measureDuration :: TimeSignature -> Duration
 measureDuration (TS num denom) = num Data.Ratio.% denom
 
@@ -69,8 +75,19 @@ rm = RMeasure (TS 4 4) [d, d, d, d]
 isValid :: Bool
 isValid = isValidRMeasure rm
 
-main :: IO ()
-main = do
+
+test1 :: IO ()
+test1 = do
+    let duration1 = 4 % 8
+        duration2 = 5 % 8
+        ratio = durationRatio duration1 duration2
+    putStrLn $ "Duration ratio: " ++ show ratio
+
+-- Duration ratio: 4 % 5
+
+
+test2 :: IO ()
+test2 = do
   let formatted = formatTime result
   putStrLn formatted
 
