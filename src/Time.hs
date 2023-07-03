@@ -67,7 +67,7 @@ isValidRMeasure :: RMeasure -> Bool
 isValidRMeasure (RMeasure ts components) = totalDur == measureDuration ts
     where
         totalDur = sum $ map componentDuration components
-        componentDuration (DurationInRMeasure d) = d
+        componentDuration (DurationInRMeasure dur) = dur
         componentDuration (TupletInRMeasure (Tuplet _ _ _ multipliedDur)) = multipliedDur
 
 
