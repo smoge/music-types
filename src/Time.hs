@@ -1,7 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-
 module Time (
     TimeSignature(..),
     Duration,
@@ -40,7 +39,6 @@ measureDuration (TS num denom) = num Data.Ratio.% denom
 
 toSeconds :: Duration -> Tempo -> Double
 toSeconds duration (BPM bpm) =  fromRational duration / (fromIntegral bpm / 60)
-
 
 formatTime :: Double -> String
 formatTime seconds =
@@ -84,7 +82,6 @@ createTuplet multiplier components =
       multipliedDuration = totalDur * multiplier
   in Tuplet multiplier components totalDur multipliedDuration
 
-
 formatTuplet :: Tuplet -> String
 formatTuplet tuplet = formatTupletWithIndentation tuplet 0
 
@@ -100,18 +97,18 @@ formatComponent indentationLevel (DurationComponent duration) =
 formatComponent indentationLevel (NestedTupletComponent tuplet) =
     formatTupletWithIndentation tuplet indentationLevel
 
-
-
-{- TESTS -}
+-- -------------------------------------------------------------------------- --
+-- TESTS --
+-- -------------------------------------------------------------------------- --
 
 d :: Duration
 d = 1 % 2
 
--- t :: Tempo
--- t = BPM 120
+t :: Tempo
+t = BPM 120
 
-result :: Double
-result = toSeconds d (BPM 120)
+secs :: Double
+secs = toSeconds d (BPM 120)
 
 rm :: RMeasure
 rm = RMeasure (TS 4 4) [d, d, d, d]
@@ -119,24 +116,19 @@ rm = RMeasure (TS 4 4) [d, d, d, d]
 isValid :: Bool
 isValid = isValidRMeasure rm
 
-
 test1 :: IO ()
 test1 = do
     let duration1 = 4 % 8
         duration2 = 5 % 8
         ratio = durationRatio duration1 duration2
     putStrLn $ "Duration ratio: " ++ show ratio
-
 -- Duration ratio: 4 % 5
-
 
 test2 :: IO ()
 test2 = do
-  let formatted = formatTime result
+  let formatted = formatTime secs
   putStrLn formatted
-
 -- "00:00:250"
-
 
 test3:: IO ()
 test3 = do
@@ -144,9 +136,7 @@ test3 = do
       components = [DurationComponent (1 % 8), NestedTupletComponent innerTuplet, DurationComponent (1 % 8), DurationComponent (1 % 8)]
       tuplet = createTuplet (4 % 5) components
   print tuplet
-
 -- Tuplet {tupletMultiplier = 4 % 5, tupletComponents = [DurationComponent (1 % 8),NestedTupletComponent (Tuplet {tupletMultiplier = 2 % 3, tupletComponents = [DurationComponent (1 % 8),DurationComponent (1 % 8),DurationComponent (1 % 8)], tupletTotalDuration = 3 % 8, tupletMultipliedDuration = 1 % 4}),DurationComponent (1 % 8),DurationComponent (1 % 8)], tupletTotalDuration = 5 % 8, tupletMultipliedDuration = 1 % 2}
-
 
 test4:: IO ()
 test4 = do
@@ -154,7 +144,6 @@ test4 = do
         components = [DurationComponent (1 % 8), NestedTupletComponent innerTuplet, DurationComponent (1 % 8), DurationComponent (1 % 8)]
         tuplet = createTuplet (4 % 5) components
     putStrLn $ formatTuplet tuplet
-
 {-
 Tuplet (multiplier: 4 % 5)
   Duration: 1 % 8
