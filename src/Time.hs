@@ -5,7 +5,8 @@ module Time (
     Duration,
     measureDuration,
     Tempo(..),
-    toSeconds
+    toSeconds,
+    formatTime
 ) where
 import           Data.Ratio  ((%))
 import           Text.Printf
