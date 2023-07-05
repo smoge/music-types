@@ -103,14 +103,27 @@ parseFraction = do
     denom <- Parsec.many1 Parsec.digit
     return (read num % read denom)
 
+-- parseTuplet :: Parser MusicElement
+-- parseTuplet = do
+--     _ <- Parsec.string "\\tuplet"
+--     Parsec.spaces
+--     frac <- parseFraction
+--     Parsec.spaces
+--     elements <- Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
+--     return $ Tuplet frac elements
+
 parseTuplet :: Parser MusicElement
 parseTuplet = do
     _ <- Parsec.string "\\tuplet"
     Parsec.spaces
     frac <- parseFraction
     Parsec.spaces
-    elements <- Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
+    elements <- Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseTupletElement <* Parsec.spaces))
     return $ Tuplet frac elements
+
+parseTupletElement :: Parser MusicElement
+parseTupletElement = parseNote <|> parseChord
+
 
 parseMusicElement :: Parser MusicElement
 parseMusicElement = parseNote <|> parseChord <|> parseTuplet
@@ -126,17 +139,6 @@ main = do
     print parsedExample
 
 {-
-Right [
-    Note A Natural (Octave 0) Quarter,
-    Tuplet (3 % 2) [
-        Note C Sharp (Octave 0) Eighth,
-        Note D Natural (Octave 0) Eighth,
-        Note E Natural (Octave 0) Eighth],
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] (Dotted Whole),
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Half,
-    Chord [(F,Natural,Octave 0),(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
-    Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter]
-
+Right [Note A Natural (Octave 0) Quarter,Tuplet (3 % 2) [Note C Sharp (Octave 0) Eighth,Note D Natural (Octave 0) Eighth,Note E Natural (Octave 0) Eighth],Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] (Dotted Whole),Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Half,Chord [(F,Natural,Octave 0),(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter]
 -}
 
