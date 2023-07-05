@@ -120,6 +120,11 @@ parseMusicElement = parseNote <|> parseChord
 parseMusic :: Parser Music
 parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
 
+
+-- -------------------------------------------------------------------------- --
+-- TESTS --
+-- -------------------------------------------------------------------------- --
+
 main :: IO ()
 main = do
     let example = "{ aisih''4 <a' ceh e>1 <aih c, e>2 <f aih c e>4 <a c>8 <g c e>4 }"
