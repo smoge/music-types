@@ -122,23 +122,11 @@ parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}')
 
 main :: IO ()
 main = do
-    let example = "{ a4 \\tuplet 3/2 {c8 d8 e8} <a c e>1 <a c e>2 <f a c e>4 <a c>8 <g c e>4 }"
+    let example = "{ a4 \\tuplet 3/2 {c8 d8 e8} <a c e>1. <a c e>2 <f a c e>4 <a c>8 <g c e>4 }"
     let parsedExample = Parsec.parse parseMusic "" example
     print parsedExample
 
 
 {-
-Right [
-    Note A Natural (Octave 0) Quarter,
-    Tuplet (3 % 2) [
-        Note C Natural (Octave 0) Eighth,
-        Note D Natural (Octave 0) Eighth,
-        Note E Natural (Octave 0) Eighth
-        ],
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Whole,
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Half,
-    Chord [(F,Natural,Octave 0),(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
-    Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
-]
+Right [Note A Natural (Octave 0) Quarter,Tuplet (3 % 2) [Note C Natural (Octave 0) Eighth,Note D Natural (Octave 0) Eighth,Note E Natural (Octave 0) Eighth],Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] (Dotted Whole),Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Half,Chord [(F,Natural,Octave 0),(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter]
 -}
