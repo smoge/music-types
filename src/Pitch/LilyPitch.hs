@@ -7,7 +7,10 @@ import           Control.Applicative
 import qualified Text.Parsec         as Parsec
 import           Text.Parsec.String  (Parser)
 
-data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth deriving (Show)
+
+
+data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength deriving (Show)
+
 
 data Pitch = A | B | C | D | E | F | G deriving (Show)
 
@@ -76,12 +79,18 @@ parseOctave = do
 parseLength :: Parser NoteLength
 parseLength = do
     length <- Parsec.optionMaybe (Parsec.oneOf "1248")
-    return $ case length of
-        Just '1' -> Whole
-        Just '2' -> Half
-        Just '4' -> Quarter
-        Just '8' -> Eighth
-        _        -> Quarter -- default
+    dot <- Parsec.optionMaybe (Parsec.char '.')
+    return $ case (length, dot) of
+        (Just '1', Nothing) -> Whole
+        (Just '2', Nothing) -> Half
+        (Just '4', Nothing) -> Quarter
+        (Just '8', Nothing) -> Eighth
+        (Just '1', Just _)  -> Dotted Whole
+        (Just '2', Just _)  -> Dotted Half
+        (Just '4', Just _)  -> Dotted Quarter
+        (Just '8', Just _)  -> Dotted Eighth
+        _                   -> Quarter -- default
+
 
 parseNote :: Parser MusicElement
 parseNote = do
@@ -128,3 +137,23 @@ Right [
     ]
 -}
 
+
+test :: IO ()
+test = do
+    let example = "{ aisih''1. <a' ceh e>2 <aih c, e>2. <f aih c e>4 <a c>8 <g c e>4 }"
+    let parsedExample = Parsec.parse parseMusic "" example
+    print parsedExample
+
+
+
+{-
+Right [
+  Note A SesquiSharp (Octave 2) (Dotted Whole),
+  Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Half,
+  Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] (Dotted Half),
+  Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
+  Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
+  Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
+  ]
+
+-}
