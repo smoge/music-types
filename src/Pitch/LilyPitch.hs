@@ -27,18 +27,10 @@ instance Show Metronome where
 -- Helper function to convert NoteLength to its corresponding Unicode character
 showNoteLength :: NoteLength -> String
 showNoteLength Whole     = "𝅝"
-showNoteLength  Half     = "𝅗𝅥"
+showNoteLength Half      = "𝅗𝅥"
 showNoteLength Quarter   = "𝅘𝅥"
 showNoteLength Eighth    = "♪"
 showNoteLength Sixteenth = "𝅘𝅥𝅯"
-
--- metronome1 = Metronome Eighth 80
--- ghci> putStrLn $ show metronome1
--- ♪ = 80
--- ghci> metronome2 = Metronome Sixteenth 80
--- ghci>  putStrLn $ show metronome2
--- 𝅘𝅥𝅯 = 80
-
 
 parsePitch :: Parser Pitch
 parsePitch = do
