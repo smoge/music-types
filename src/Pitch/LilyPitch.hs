@@ -3,8 +3,9 @@
 {-# LANGUAGE InstanceSigs      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import qualified Text.Parsec        as Parsec
-import           Text.Parsec.String (Parser)
+import           Control.Applicative
+import qualified Text.Parsec         as Parsec
+import           Text.Parsec.String  (Parser)
 
 data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth deriving (Show)
 
@@ -16,7 +17,11 @@ data Octave where
   Octave :: Int -> Octave
   deriving (Show)
 
-data MusicElement = Note Pitch Accidental Octave NoteLength deriving (Show)
+data MusicElement where
+  Note :: Pitch -> Accidental -> Octave -> NoteLength -> MusicElement
+  Chord :: [(Pitch, Accidental, Octave)] -> NoteLength -> MusicElement
+  deriving (Show)
+
 
 type Music = [MusicElement]
 
@@ -85,19 +90,40 @@ parseNote = do
     octave <- parseOctave
     Note pitch accidental octave <$> parseLength
 
+parseChordNote :: Parser (Pitch, Accidental, Octave)
+parseChordNote = do
+    pitch <- parsePitch
+    accidental <- parseAccidental
+    octave <- parseOctave
+    return (pitch, accidental, octave)
+
+parseChord :: Parser MusicElement
+parseChord = do
+    _ <- Parsec.char '<'
+    notes <- Parsec.sepBy1 parseChordNote (Parsec.char ' ')
+    _ <- Parsec.char '>'
+    Chord notes <$> parseLength
+
+
 parseMusicElement :: Parser MusicElement
-parseMusicElement = parseNote
+parseMusicElement = parseNote <|> parseChord
 
 parseMusic :: Parser Music
 parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
 
 main :: IO ()
 main = do
-    let example = "{ ceseh'4 ces, ceh,, c'' cih cis cisih }"
+    let example = "{ <a' ceh e>1 <aih c, e>2 <f aih c e>4 <a c>8 <g c e>4 }"
     let parsedExample = Parsec.parse parseMusic "" example
     print parsedExample
 
 {-
-Right [Note C SesquiFlat (Octave 1) Quarter,Note C Flat (Octave (-1)) Quarter,Note C SemiFlat (Octave (-2)) Quarter,Note C Natural (Octave 2) Quarter,Note C SemiSharp (Octave 0) Quarter,Note C Sharp (Octave 0) Quarter,Note C SesquiSharp (Octave 0) Quarter]
+Right [
+    Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Whole,
+    Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] Half,
+    Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)]
+    Quarter,Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
+    Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
+    ]
 -}
 
