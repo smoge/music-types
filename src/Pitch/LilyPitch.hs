@@ -113,12 +113,13 @@ parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}')
 
 main :: IO ()
 main = do
-    let example = "{ <a' ceh e>1 <aih c, e>2 <f aih c e>4 <a c>8 <g c e>4 }"
+    let example = "{ aisih''4 <a' ceh e>1 <aih c, e>2 <f aih c e>4 <a c>8 <g c e>4 }"
     let parsedExample = Parsec.parse parseMusic "" example
     print parsedExample
 
 {-
 Right [
+    Note A SesquiSharp (Octave 2) Quarter,
     Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Whole,
     Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] Half,
     Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)]
