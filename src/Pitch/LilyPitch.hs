@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# LANGUAGE GADTs             #-}
+{-# LANGUAGE UnicodeSyntax     #-}
+
+
 
 import qualified Text.Parsec        as Parsec
 import           Text.Parsec.String (Parser)
@@ -13,6 +16,29 @@ data Octave where
   deriving (Show)
 data MusicElement = Note Pitch Accidental Octave NoteLength deriving (Show)
 type Music = [MusicElement]
+
+
+data Metronome where
+  Metronome :: NoteLength -> Int -> Metronome
+
+instance Show Metronome where
+  show (Metronome noteLength bpm) = showNoteLength noteLength ++ " = " ++ show bpm
+
+-- Helper function to convert NoteLength to its corresponding Unicode character
+showNoteLength :: NoteLength -> String
+showNoteLength Whole     = "𝅝"
+showNoteLength  Half     = "𝅗𝅥"
+showNoteLength Quarter   = "𝅘𝅥"
+showNoteLength Eighth    = "♪"
+showNoteLength Sixteenth = "𝅘𝅥𝅯"
+
+-- metronome1 = Metronome Eighth 80
+-- ghci> putStrLn $ show metronome1
+-- ♪ = 80
+-- ghci> metronome2 = Metronome Sixteenth 80
+-- ghci>  putStrLn $ show metronome2
+-- 𝅘𝅥𝅯 = 80
+
 
 parsePitch :: Parser Pitch
 parsePitch = do
