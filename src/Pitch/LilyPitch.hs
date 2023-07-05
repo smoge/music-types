@@ -76,3 +76,8 @@ main = do
     let example = "{ ceseh'4 ces, ceh,, c'' cih cis cisih }"
     let parsedExample = Parsec.parse parseMusic "" example
     print parsedExample
+
+{-
+Right [Note C SesquiFlat (Octave 1) Quarter,Note C Flat (Octave (-1)) Quarter,Note C SemiFlat (Octave (-2)) Quarter,Note C Natural (Octave 2) Quarter,Note C SemiSharp (Octave 0) Quarter,Note C Sharp (Octave 0) Quarter,Note C SesquiSharp (Octave 0) Quarter]
+-}
+
