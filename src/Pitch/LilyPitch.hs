@@ -1,46 +1,29 @@
 {-# LANGUAGE GADTs             #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-{-# LANGUAGE InstanceSigs      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Control.Applicative
-import qualified Text.Parsec         as Parsec
-import           Text.Parsec.String  (Parser)
+import           Data.Ratio  ((%))
+import           Text.Parsec as Parsec
 
-
-
-data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength deriving (Show, Eq)
-
+data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength
+    deriving (Show, Eq)
 
 data Pitch = A | B | C | D | E | F | G deriving (Show, Eq)
 
-data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat deriving (Show, Eq)
+data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat
+    deriving (Show, Eq)
 
 data Octave where
-  Octave :: Int -> Octave
-  deriving (Show, Eq, Ord)
+    Octave :: Int -> Octave
+    deriving (Show, Eq, Ord)
 
 data MusicElement where
-  Note :: Pitch -> Accidental -> Octave -> NoteLength -> MusicElement
-  Chord :: [(Pitch, Accidental, Octave)] -> NoteLength -> MusicElement
-  deriving (Show, Eq)
-
+    Note :: Pitch -> Accidental -> Octave -> NoteLength -> MusicElement
+    Chord :: [(Pitch, Accidental, Octave)] -> NoteLength -> MusicElement
+    Tuplet :: Rational -> [MusicElement] -> MusicElement
+    deriving (Show, Eq)
 
 type Music = [MusicElement]
-
--- data Metronome where
---   Metronome :: NoteLength -> Int -> Metronome
-
--- instance Show Metronome where
---   show :: Metronome -> String
---   show (Metronome noteLength bpm) = showNoteLength noteLength ++ " = " ++ show bpm
-
--- showNoteLength :: NoteLength -> String
--- showNoteLength Whole     = "𝅝"
--- showNoteLength Half      = "𝅗𝅥"
--- showNoteLength Quarter   = "𝅘𝅥"
--- showNoteLength Eighth    = "♪"
--- showNoteLength Sixteenth = "𝅘𝅥𝅯"
+type Parser = Parsec String ()
 
 parsePitch :: Parser Pitch
 parsePitch = do
@@ -54,14 +37,14 @@ parsePitch = do
         'f' -> F
         'g' -> G
 
-parseAccidental :: Text.Parsec.String.Parser Accidental
+parseAccidental :: Parser Accidental
 parseAccidental = do
-    acc <- Parsec.optionMaybe (Parsec.try (Parsec.string "isih")
-                               Parsec.<|> Parsec.try (Parsec.string "eseh")
-                               Parsec.<|> Parsec.try (Parsec.string "is")
-                               Parsec.<|> Parsec.try (Parsec.string "es")
-                               Parsec.<|> Parsec.try (Parsec.string "ih")
-                               Parsec.<|> Parsec.try (Parsec.string "eh"))
+    acc <- Parsec.optionMaybe (Parsec.string "isih"
+                               <|> Parsec.string "eseh"
+                               <|> Parsec.string "is"
+                               <|> Parsec.string "es"
+                               <|> Parsec.string "ih"
+                               <|> Parsec.string "eh")
     return $ case acc of
         Just "is"   -> Sharp
         Just "es"   -> Flat
@@ -78,9 +61,9 @@ parseOctave = do
 
 parseLength :: Parser NoteLength
 parseLength = do
-    length <- Parsec.optionMaybe (Parsec.oneOf "1248")
+    len <- Parsec.optionMaybe (Parsec.oneOf "1248")
     dot <- Parsec.optionMaybe (Parsec.char '.')
-    return $ case (length, dot) of
+    return $ case (len, dot) of
         (Just '1', Nothing) -> Whole
         (Just '2', Nothing) -> Half
         (Just '4', Nothing) -> Quarter
@@ -89,15 +72,15 @@ parseLength = do
         (Just '2', Just _)  -> Dotted Half
         (Just '4', Just _)  -> Dotted Quarter
         (Just '8', Just _)  -> Dotted Eighth
-        _                   -> Quarter -- default
-
+        _                   -> Quarter
 
 parseNote :: Parser MusicElement
 parseNote = do
     pitch <- parsePitch
     accidental <- parseAccidental
     octave <- parseOctave
-    Note pitch accidental octave <$> parseLength
+    length <- parseLength
+    return $ Note pitch accidental octave length
 
 parseChordNote :: Parser (Pitch, Accidental, Octave)
 parseChordNote = do
@@ -111,54 +94,50 @@ parseChord = do
     _ <- Parsec.char '<'
     notes <- Parsec.sepBy1 parseChordNote (Parsec.char ' ')
     _ <- Parsec.char '>'
-    Chord notes <$> parseLength
+    length <- parseLength
+    return $ Chord notes length
 
+parseFraction :: Parser Rational
+parseFraction = do
+    num <- Parsec.many1 Parsec.digit
+    _ <- Parsec.char '/'
+    denom <- Parsec.many1 Parsec.digit
+    return (read num % read denom)
+
+parseTuplet :: Parser MusicElement
+parseTuplet = do
+    _ <- Parsec.string "\\tuplet"
+    Parsec.spaces
+    frac <- parseFraction
+    Parsec.spaces
+    elements <- Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
+    return $ Tuplet frac elements
 
 parseMusicElement :: Parser MusicElement
-parseMusicElement = parseNote <|> parseChord
+parseMusicElement = parseNote <|> parseChord <|> parseTuplet
 
 parseMusic :: Parser Music
 parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
 
 
--- -------------------------------------------------------------------------- --
--- TESTS --
--- -------------------------------------------------------------------------- --
-
 main :: IO ()
 main = do
-    let example = "{ aisih''4 <a' ceh e>1 <aih c, e>2 <f aih c e>4 <a c>8 <g c e>4 }"
-    let parsedExample = Parsec.parse parseMusic "" example
-    print parsedExample
-
-{-
-Right [
-    Note A SesquiSharp (Octave 2) Quarter,
-    Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Whole,
-    Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] Half,
-    Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
-    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
-    Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
-    ]
--}
-
-
-test :: IO ()
-test = do
-    let example = "{ aisih''1. <a' ceh e>2 <aih c, e>2. <f aih c e>4 <a c>8 <g c e>4 }"
+    let example = "{ a4 \\tuplet 3/2 {c8 d8 e8} <a c e>1 <a c e>2 <f a c e>4 <a c>8 <g c e>4 }"
     let parsedExample = Parsec.parse parseMusic "" example
     print parsedExample
 
 
-
 {-
-Right [
-  Note A SesquiSharp (Octave 2) (Dotted Whole),
-  Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Half,
-  Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] (Dotted Half),
-  Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
-  Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
-  Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
-  ]
-
+Right [Note A Natural (Octave 0) Quarter,
+Tuplet (3 % 2) [
+  Note C Natural (Octave 0) Eighth,
+  Note D Natural (Octave 0) Eighth,
+  Note E Natural (Octave 0) Eighth
+  ],
+Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Whole,
+Chord [(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Half,
+Chord [(F,Natural,Octave 0),(A,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
+Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
+Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
+]
 -}
