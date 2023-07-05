@@ -1,30 +1,32 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# LANGUAGE GADTs             #-}
-{-# LANGUAGE UnicodeSyntax     #-}
-
-
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# LANGUAGE InstanceSigs      #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 import qualified Text.Parsec        as Parsec
 import           Text.Parsec.String (Parser)
 
 data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth deriving (Show)
+
 data Pitch = A | B | C | D | E | F | G deriving (Show)
+
 data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat deriving (Show)
+
 data Octave where
   Octave :: Int -> Octave
   deriving (Show)
-data MusicElement = Note Pitch Accidental Octave NoteLength deriving (Show)
-type Music = [MusicElement]
 
+data MusicElement = Note Pitch Accidental Octave NoteLength deriving (Show)
+
+type Music = [MusicElement]
 
 data Metronome where
   Metronome :: NoteLength -> Int -> Metronome
 
 instance Show Metronome where
+  show :: Metronome -> String
   show (Metronome noteLength bpm) = showNoteLength noteLength ++ " = " ++ show bpm
 
--- Helper function to convert NoteLength to its corresponding Unicode character
 showNoteLength :: NoteLength -> String
 showNoteLength Whole     = "𝅝"
 showNoteLength Half      = "𝅗𝅥"
@@ -34,8 +36,8 @@ showNoteLength Sixteenth = "𝅘𝅥𝅯"
 
 parsePitch :: Parser Pitch
 parsePitch = do
-    p <- Parsec.oneOf "abcdefg"
-    return $ case p of
+    pitch <- Parsec.oneOf "abcdefg"
+    return $ case pitch of
         'a' -> A
         'b' -> B
         'c' -> C
@@ -44,7 +46,7 @@ parsePitch = do
         'f' -> F
         'g' -> G
 
-parseAccidental :: Parser Accidental
+parseAccidental :: Text.Parsec.String.Parser Accidental
 parseAccidental = do
     acc <- Parsec.optionMaybe (Parsec.try (Parsec.string "isih")
                                Parsec.<|> Parsec.try (Parsec.string "eseh")
@@ -63,25 +65,25 @@ parseAccidental = do
 
 parseOctave :: Parser Octave
 parseOctave = do
-    o <- Parsec.many (Parsec.oneOf "',")
-    return $ Octave (length (filter (== '\'') o) - length (filter (== ',') o))
+    octave <- Parsec.many (Parsec.oneOf "',")
+    return $ Octave (length (filter (== '\'') octave) - length (filter (== ',') octave))
 
 parseLength :: Parser NoteLength
 parseLength = do
-    l <- Parsec.optionMaybe (Parsec.oneOf "1248")
-    return $ case l of
+    length <- Parsec.optionMaybe (Parsec.oneOf "1248")
+    return $ case length of
         Just '1' -> Whole
         Just '2' -> Half
         Just '4' -> Quarter
         Just '8' -> Eighth
-        _        -> Quarter -- default length
+        _        -> Quarter -- default
 
 parseNote :: Parser MusicElement
 parseNote = do
     pitch <- parsePitch
-    acc <- parseAccidental
+    accidental <- parseAccidental
     octave <- parseOctave
-    Note pitch acc octave <$> parseLength
+    Note pitch accidental octave <$> parseLength
 
 parseMusicElement :: Parser MusicElement
 parseMusicElement = parseNote
