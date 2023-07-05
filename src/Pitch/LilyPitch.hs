@@ -122,8 +122,8 @@ Right [
     Note A SesquiSharp (Octave 2) Quarter,
     Chord [(A,Natural,Octave 1),(C,SemiFlat,Octave 0),(E,Natural,Octave 0)] Whole,
     Chord [(A,SemiSharp,Octave 0),(C,Natural,Octave (-1)),(E,Natural,Octave 0)] Half,
-    Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)]
-    Quarter,Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
+    Chord [(F,Natural,Octave 0),(A,SemiSharp,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter,
+    Chord [(A,Natural,Octave 0),(C,Natural,Octave 0)] Eighth,
     Chord [(G,Natural,Octave 0),(C,Natural,Octave 0),(E,Natural,Octave 0)] Quarter
     ]
 -}
