@@ -9,38 +9,38 @@ import           Text.Parsec.String  (Parser)
 
 
 
-data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength deriving (Show)
+data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength deriving (Show, Eq)
 
 
-data Pitch = A | B | C | D | E | F | G deriving (Show)
+data Pitch = A | B | C | D | E | F | G deriving (Show, Eq)
 
-data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat deriving (Show)
+data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat deriving (Show, Eq)
 
 data Octave where
   Octave :: Int -> Octave
-  deriving (Show)
+  deriving (Show, Eq, Ord)
 
 data MusicElement where
   Note :: Pitch -> Accidental -> Octave -> NoteLength -> MusicElement
   Chord :: [(Pitch, Accidental, Octave)] -> NoteLength -> MusicElement
-  deriving (Show)
+  deriving (Show, Eq)
 
 
 type Music = [MusicElement]
 
-data Metronome where
-  Metronome :: NoteLength -> Int -> Metronome
+-- data Metronome where
+--   Metronome :: NoteLength -> Int -> Metronome
 
-instance Show Metronome where
-  show :: Metronome -> String
-  show (Metronome noteLength bpm) = showNoteLength noteLength ++ " = " ++ show bpm
+-- instance Show Metronome where
+--   show :: Metronome -> String
+--   show (Metronome noteLength bpm) = showNoteLength noteLength ++ " = " ++ show bpm
 
-showNoteLength :: NoteLength -> String
-showNoteLength Whole     = "𝅝"
-showNoteLength Half      = "𝅗𝅥"
-showNoteLength Quarter   = "𝅘𝅥"
-showNoteLength Eighth    = "♪"
-showNoteLength Sixteenth = "𝅘𝅥𝅯"
+-- showNoteLength :: NoteLength -> String
+-- showNoteLength Whole     = "𝅝"
+-- showNoteLength Half      = "𝅗𝅥"
+-- showNoteLength Quarter   = "𝅘𝅥"
+-- showNoteLength Eighth    = "♪"
+-- showNoteLength Sixteenth = "𝅘𝅥𝅯"
 
 parsePitch :: Parser Pitch
 parsePitch = do
