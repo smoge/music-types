@@ -36,6 +36,7 @@ parsePitch = do
         'e' -> E
         'f' -> F
         'g' -> G
+        _   -> error "Invalid pitch"
 
 parseAccidental :: Parser Accidental
 parseAccidental = do
