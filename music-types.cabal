@@ -9,7 +9,7 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/music-types#readme>
 homepage:       https://github.com/githubuser/music-types#readme
 bug-reports:    https://github.com/githubuser/music-types/issues
-author:         Author name here
+author:         Bernardo Barros
 maintainer:     example@example.com
 copyright:      2023 Author name here
 license:        BSD3
@@ -33,8 +33,8 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
-    , parsec 
-    , pretty-show 
+    , parsec
+    , pretty-show
     , QuickCheck
   default-language: Haskell2010
 
@@ -50,7 +50,7 @@ executable music-types-exe
     , music-types
     , parsec
     , pretty-show
-    , QuickCheck 
+    , QuickCheck
   default-language: Haskell2010
 
 test-suite music-types-test
