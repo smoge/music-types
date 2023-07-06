@@ -1,15 +1,19 @@
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+import           Data.Maybe  (fromMaybe)
 import           Data.Ratio  ((%))
-import           Text.Parsec as Parsec
+import           Text.Parsec as Parsec (Parsec, between, char, digit, many,
+                                        many1, oneOf, optionMaybe, parse,
+                                        sepBy1, spaces, string, try, (<|>))
 
-data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | Dotted NoteLength
+data NoteLength = Whole | Half | Quarter | Eighth | Sixteenth | T32 | T64 | T128 | T256 | T512 | T1024 | Dotted NoteLength
     deriving (Show, Eq)
 
 data Pitch = A | B | C | D | E | F | G deriving (Show, Eq)
 
-data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat
+
+data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | CustomAccidental Rational
     deriving (Show, Eq)
 
 data Octave where
@@ -20,10 +24,55 @@ data MusicElement where
     Note :: Pitch -> Accidental -> Octave -> NoteLength -> MusicElement
     Chord :: [(Pitch, Accidental, Octave)] -> NoteLength -> MusicElement
     Tuplet :: Rational -> [MusicElement] -> MusicElement
+    Rest :: NoteLength -> MusicElement
     deriving (Show, Eq)
 
+
 type Music = [MusicElement]
-type Parser = Parsec String ()
+
+
+noteLengthToRational :: NoteLength -> Rational
+noteLengthToRational Whole       = 1 % 1
+noteLengthToRational Half        = 1 % 2
+noteLengthToRational Quarter     = 1 % 4
+noteLengthToRational Eighth      = 1 % 8
+noteLengthToRational Sixteenth   = 1 % 16
+noteLengthToRational T32         = 1 % 32
+noteLengthToRational T64         = 1 % 64
+noteLengthToRational T128        = 1 % 128
+noteLengthToRational T256        = 1 % 256
+noteLengthToRational T512        = 1 % 512
+noteLengthToRational T1024       = 1 % 1024
+noteLengthToRational (Dotted nl) = noteLengthToRational nl * (3 % 2)
+
+
+noteToRational :: (Pitch, Accidental, Octave) -> Rational
+noteToRational (pitch, accidental, Octave octave) =
+    let
+        pitchValue = fromMaybe (0%1) (lookup pitch [(C, 0%1), (D, 2%1), (E, 4%1), (F, 5%1), (G, 7%1), (A, 9%1), (B, 11%1)])
+
+        accidentalValue = case accidental of
+            Sharp                  -> 1 % 1
+            Flat                   -> (-1 % 1)
+            Natural                -> 0 % 1
+            SemiSharp              -> 1 % 2
+            SemiFlat               -> (-1 % 2)
+            SesquiSharp            -> 3 % 2
+            SesquiFlat             -> (-3 % 2)
+            CustomAccidental value -> value
+
+        totalValue = (pitchValue + accidentalValue) + toRational (octave * 12)
+    in totalValue
+
+
+pitchToRational :: MusicElement -> [Rational]
+pitchToRational (Note pitch accidental octave _) = [noteToRational (pitch, accidental, octave)]
+pitchToRational (Chord pitches _) = map noteToRational pitches
+pitchToRational _ = error "Function can only convert Notes and Chords to Rational"
+
+
+
+type Parser = Parsec.Parsec String ()
 
 parsePitch :: Parser Pitch
 parsePitch = do
@@ -41,11 +90,11 @@ parsePitch = do
 parseAccidental :: Parser Accidental
 parseAccidental = do
     acc <- Parsec.optionMaybe (Parsec.try (Parsec.string "isih")
-                               <|> Parsec.try (Parsec.string "eseh")
-                               <|> Parsec.try (Parsec.string "is")
-                               <|> Parsec.try (Parsec.string "es")
-                               <|> Parsec.try (Parsec.string "ih")
-                               <|> Parsec.try (Parsec.string "eh"))
+                               Parsec.<|> Parsec.try (Parsec.string "eseh")
+                               Parsec.<|> Parsec.try (Parsec.string "is")
+                               Parsec.<|> Parsec.try (Parsec.string "es")
+                               Parsec.<|> Parsec.try (Parsec.string "ih")
+                               Parsec.<|> Parsec.try (Parsec.string "eh"))
     return $ case acc of
         Just "is"   -> Sharp
         Just "es"   -> Flat
@@ -123,11 +172,11 @@ parseTuplet = do
     return $ Tuplet frac elements
 
 parseTupletElement :: Parser MusicElement
-parseTupletElement = parseNote <|> parseChord <|> parseTuplet
+parseTupletElement = parseNote Parsec.<|> parseChord Parsec.<|> parseTuplet
 
 
 parseMusicElement :: Parser MusicElement
-parseMusicElement = parseNote <|> parseChord <|> parseTuplet
+parseMusicElement = parseNote Parsec.<|> parseChord Parsec.<|> parseTuplet
 
 parseMusic :: Parser Music
 parseMusic = Parsec.between (Parsec.char '{' >> Parsec.spaces) (Parsec.char '}') (Parsec.many (parseMusicElement <* Parsec.spaces))
@@ -187,4 +236,3 @@ Right
 
 
 -}
-
