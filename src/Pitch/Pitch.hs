@@ -2,11 +2,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use <$>" #-}
+{-# HLINT ignore "Eta reduce" #-}
 
 
 import           Data.List   (sortBy)
 import           Data.Maybe  (fromMaybe)
-import           Data.Ratio  ((%))
+import           Data.Ratio
 import           Text.Parsec as Parsec (Parsec, between, char, digit, many,
                                         many1, oneOf, optionMaybe, parse,
                                         sepBy1, spaces, string, try, (<|>))
@@ -63,6 +64,25 @@ durToRat T512        = 1 % 512
 durToRat T1024       = 1 % 1024
 durToRat (Dotted nl) = durToRat nl * (3 % 2)
 
+ratToDur :: Rational -> Dur
+ratToDur r
+    | r == 1 % 1 = Whole
+    | r == 1 % 2 = Half
+    | r == 1 % 4 = Quarter
+    | r == 1 % 8 = Eighth
+    | r == 1 % 16 = Sixteenth
+    | r == 1 % 32 = T32
+    | r == 1 % 64 = T64
+    | r == 1 % 128 = T128
+    | r == 1 % 256 = T256
+    | r == 1 % 512 = T512
+    | r == 1 % 1024 = T1024
+    | r > 0 && denominator r == 2 && numerator r `rem` 3 == 0 = Dotted (ratToDur (r * (2 % 3)))
+    | otherwise = error "Invalid rational value for duration"
+
+intToDur :: Int -> Dur
+intToDur n = ratToDur (toRational (1 % n))
+
 pitchToRat :: Pitch -> Rational
 pitchToRat (Pitch notename accidental (Octave oct)) =
     let
@@ -96,6 +116,86 @@ pitchToHertz pitch = midiCps (fromRational (pitchToRat pitch) - 60)
 noteToHertz :: MusicElement -> Float
 noteToHertz (Note pitch _) = pitchToHertz pitch
 noteToHertz _              = error "Function can only convert Notes to Hertz"
+
+
+{-
+c 4
+fs 8
+
+
+-}
+
+createNote :: NoteName -> Accidental -> Octave -> Dur -> MusicElement
+createNote noteName accidental octave dur = Note (Pitch noteName accidental octave) dur
+
+c, cs, css, cf, csf :: Int -> Dur -> MusicElement
+c o dur = createNote C Natural (Octave o) dur
+css o dur = createNote C SemiSharp (Octave o) dur
+cs o dur = createNote C Sharp (Octave o) dur
+cf o dur = createNote C Flat (Octave o) dur
+csf o dur = createNote C SemiFlat (Octave o) dur
+
+d, ds, dss, df, dsf :: Int -> Dur -> MusicElement
+d o dur = createNote D Natural (Octave o) dur
+ds o dur = createNote D Sharp (Octave o) dur
+df o dur = createNote D Flat (Octave o) dur
+dss o dur = createNote D SemiSharp (Octave o) dur
+dsf o dur = createNote D SemiFlat (Octave o) dur
+
+e, es, ess, ef, esf :: Int -> Dur -> MusicElement
+e o dur = createNote E Natural (Octave o) dur
+es o dur = createNote E Sharp (Octave o) dur
+ef o dur = createNote E Flat (Octave o) dur
+ess o dur = createNote E SemiSharp (Octave o) dur
+esf o dur = createNote E SemiFlat (Octave o) dur
+
+f, fs, fss, ff, fsf :: Int -> Dur -> MusicElement
+f o dur = createNote F Natural (Octave o) dur
+fs o dur = createNote F Sharp (Octave o) dur
+ff o dur = createNote F Flat (Octave o) dur
+fss o dur = createNote F SemiSharp (Octave o) dur
+fsf o dur = createNote F SemiFlat (Octave o) dur
+
+g, gs, gss, gf, gsf :: Int -> Dur -> MusicElement
+g o dur = createNote G Natural (Octave o) dur
+gs o dur = createNote G Sharp (Octave o) dur
+gf o dur = createNote G Flat (Octave o) dur
+gss o dur = createNote G SemiSharp (Octave o) dur
+gsf o dur = createNote G SemiFlat (Octave o) dur
+
+a, as, ass, af, asf :: Int -> Dur -> MusicElement
+a o dur = createNote A Natural (Octave o) dur
+as o dur = createNote A Sharp (Octave o) dur
+af o dur = createNote A Flat (Octave o) dur
+ass o dur = createNote A SemiSharp (Octave o) dur
+asf o dur = createNote A SemiFlat (Octave o) dur
+
+b, bs, bss, bf, bsf :: Int -> Dur -> MusicElement
+b o dur = createNote B Natural (Octave o) dur
+bs o dur = createNote B Sharp (Octave o) dur
+bf o dur = createNote B Flat (Octave o) dur
+bss o dur = createNote B SemiSharp (Octave o) dur
+bsf o dur = createNote B SemiFlat (Octave o) dur
+
+t1, t2, t4, t8, t16, t32, t64, t128, t256, t512, t1024 :: Dur
+d1, d2, d4, d8, d16, d32, d64, d128, d256, d512, d1024 :: Dur
+
+t1 = Whole;    t2 = Half;    t4 = Quarter;    t8 = Eighth;    t16 = Sixteenth;    t32 = T32
+t64 = T64;    t128 = T128;    t256 = T256;    t512 = T512;    t1024 = T1024
+
+d1 = Dotted Whole;    d2 = Dotted Half;    d4 = Dotted Quarter;    d8 = Dotted Eighth;    d16 = Dotted Sixteenth
+d32 = Dotted T32;    d64 = Dotted T64;    d128 = Dotted T128;    d256 = Dotted T256;    d512 = Dotted T512
+d1024 = Dotted T1024
+
+
+
+noteC4 :: MusicElement
+noteC4 = c 0 t4
+
+
+--ghci> c 0 t4
+-- Note (Pitch C Natural (Octave 0)) Quarter
+
 
 
 {------------------ Parser LilyPond Syntax ---------------------}
