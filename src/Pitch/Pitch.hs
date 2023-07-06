@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+import           Data.List   (sortBy)
 import           Data.Maybe  (fromMaybe)
 import           Data.Ratio  ((%))
 import           Text.Parsec as Parsec (Parsec, between, char, digit, many,
@@ -15,6 +16,21 @@ data Pitch = A | B | C | D | E | F | G deriving (Show, Eq)
 
 data Accidental = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | CustomAccidental Rational
     deriving (Show, Eq)
+
+
+instance Ord Accidental where
+    compare a b = compare (accidentalToOrder a) (accidentalToOrder b)
+        where
+            accidentalToOrder :: Accidental -> Rational
+            accidentalToOrder Sharp                    = 1 % 1
+            accidentalToOrder Flat                     = (-1) % 1
+            accidentalToOrder Natural                  = 0 % 1
+            accidentalToOrder SemiSharp                = 1 % 2
+            accidentalToOrder SemiFlat                 = (-1) % 2
+            accidentalToOrder SesquiSharp              = 3 % 2
+            accidentalToOrder SesquiFlat               = (-3) % 2
+            accidentalToOrder (CustomAccidental value) = value
+
 
 data Octave where
     Octave :: Int -> Octave
