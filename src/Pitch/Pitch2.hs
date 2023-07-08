@@ -6,9 +6,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
--- {-# LANGUAGE FlexibleInstances #-}
--- {-# LANGUAGE UndecidableInstances #-}
-
 import Data.Maybe (fromMaybe)
 import Data.Ratio
 
@@ -19,14 +16,6 @@ df' = Pitch D Flat (Octave 0)
 
 -- Enarmonic ?
 cs' =~ df'
-> True
-
-cs' == df'
-> False
-
-e = Pitch E Natural (Octave 0)
-
-cs' < e
 > True
 
 c 0 t4
@@ -40,8 +29,6 @@ note2 = Note df' t8
 
 note1 =~ note2
 > True
-
-note1 > e
 
 pitch cs' =~ pitch note2
 > True
@@ -59,6 +46,8 @@ middleC # 4
 middleC #. 4
 > Note (Pitch C Natural 0) (Dotted Quarter)
 
+middleC < cs'
+> True
 -}
 
 data Dur = Whole | Half | Quarter | Eighth | Sixteenth | T32 | T64 | T128 | T256 | T512 | T1024 | Dotted Dur
@@ -142,16 +131,7 @@ basePitchTable =
     (B, 11)
   ]
 
-instance Ord Pitch where
-  compare p1 p2 = compare (pitchRat p1) (pitchRat p2)
-
-instance Ord Note where
-  compare p1 p2 = compare (pitchRat $ pitch p1) (pitchRat $ pitch p2)
-
-  -- instance HasPitch a => Ord a where
-  --   compare x y = compare (pitchRat x) (pitchRat y)
-
-  -- instance HasPitch Pitch where
+instance HasPitch Pitch where
   pitch = id
   pitchRat = calculatePitchRat
   toHertz p = midiCps (fromRational (pitchRat p) - 60)
@@ -160,6 +140,12 @@ instance HasPitch Note where
   pitch (Note p _) = p
   pitchRat = calculatePitchRat . pitch
   toHertz = toHertz . pitch
+
+instance Ord Pitch where
+  compare p1 p2 = compare (pitchRat p1) (pitchRat p2)
+
+instance Ord Note where
+  compare n1 n2 = compare (pitchRat $ pitch n1) (pitchRat $ pitch n2)
 
 -- Enharmonic?
 (=~) :: (HasPitch a, HasPitch b) => a -> b -> Bool
