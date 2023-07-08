@@ -6,8 +6,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Eta reduce" #-}
-
 import Data.Maybe (fromMaybe)
 import Data.Ratio
 
@@ -193,11 +191,11 @@ pitchToRat (Pitch notename accidental (Octave oct)) =
         SesquiFlat -> (-3 % 2)
         CustomAccidental value -> value
 
-      totalValue = (pitchValue + accidentalValue) + toRational (oct * 12)
+      totalValue = pitchValue + accidentalValue + toRational (oct * 12)
    in totalValue
 
 midiCps :: Float -> Float
-midiCps note = 440.0 * (2.0 ** ((note - 69.0) * (1.0 / 12.0)))
+midiCps note = 440.0 * 2.0 ** ((note - 69.0) * (1.0 / 12.0))
 
 middleC :: Pitch
 middleC = Pitch C Natural (Octave 0)
@@ -214,65 +212,65 @@ infixl 8 #, #.
 (#) = createNote'
 
 (#.) :: Pitch -> Int -> Note
-p #. d = withDot $ createNote' p d
+p #. dur = withDot $ createNote' p dur
 
 withDot :: Note -> Note
 withDot (Note p dur) = Note p $ Dotted dur
 
 c, cs, css, cf, csf :: Int -> Dur -> Note
 c o = createNote C Natural (octave o)
-css o dur = createNote C SemiSharp (Octave o) dur
+css o = createNote C SemiSharp (Octave o)
 cs o = createNote C Sharp (Octave o)
-cf o dur = createNote C Flat (Octave o) dur
-csf o dur = createNote C SemiFlat (Octave o) dur
+cf o = createNote C Flat (Octave o)
+csf o = createNote C SemiFlat (Octave o)
 
 d, ds, dss, df, dsf :: Int -> Dur -> Note
-d o dur = createNote D Natural (Octave o) dur
-ds o dur = createNote D Sharp (Octave o) dur
-df o dur = createNote D Flat (Octave o) dur
-dss o dur = createNote D SemiSharp (Octave o) dur
-dsf o dur = createNote D SemiFlat (Octave o) dur
+d o = createNote D Natural (Octave o)
+ds o = createNote D Sharp (Octave o)
+df o = createNote D Flat (Octave o)
+dss o = createNote D SemiSharp (Octave o)
+dsf o = createNote D SemiFlat (Octave o)
 
 e, es, ess, ef, esf :: Int -> Dur -> Note
-e o dur = createNote E Natural (Octave o) dur
-es o dur = createNote E Sharp (Octave o) dur
-ef o dur = createNote E Flat (Octave o) dur
-ess o dur = createNote E SemiSharp (Octave o) dur
-esf o dur = createNote E SemiFlat (Octave o) dur
+e o = createNote E Natural (Octave o)
+es o = createNote E Sharp (Octave o)
+ef o = createNote E Flat (Octave o)
+ess o = createNote E SemiSharp (Octave o)
+esf o = createNote E SemiFlat (Octave o)
 
 f, fs, fss, ff, fsf :: Int -> Dur -> Note
-f o dur = createNote F Natural (Octave o) dur
-fs o dur = createNote F Sharp (Octave o) dur
-ff o dur = createNote F Flat (Octave o) dur
-fss o dur = createNote F SemiSharp (Octave o) dur
-fsf o dur = createNote F SemiFlat (Octave o) dur
+f o = createNote F Natural (Octave o)
+fs o = createNote F Sharp (Octave o)
+ff o = createNote F Flat (Octave o)
+fss o = createNote F SemiSharp (Octave o)
+fsf o = createNote F SemiFlat (Octave o)
 
 g, gs, gss, gf, gsf :: Int -> Dur -> Note
-g o dur = createNote G Natural (Octave o) dur
-gs o dur = createNote G Sharp (Octave o) dur
-gf o dur = createNote G Flat (Octave o) dur
-gss o dur = createNote G SemiSharp (Octave o) dur
-gsf o dur = createNote G SemiFlat (Octave o) dur
+g o = createNote G Natural (Octave o)
+gs o = createNote G Sharp (Octave o)
+gf o = createNote G Flat (Octave o)
+gss o = createNote G SemiSharp (Octave o)
+gsf o = createNote G SemiFlat (Octave o)
 
 a, as, ass, af, asf :: Int -> Dur -> Note
-a o dur = createNote A Natural (Octave o) dur
-as o dur = createNote A Sharp (Octave o) dur
-af o dur = createNote A Flat (Octave o) dur
-ass o dur = createNote A SemiSharp (Octave o) dur
-asf o dur = createNote A SemiFlat (Octave o) dur
+a o = createNote A Natural (Octave o)
+as o = createNote A Sharp (Octave o)
+af o = createNote A Flat (Octave o)
+ass o = createNote A SemiSharp (Octave o)
+asf o = createNote A SemiFlat (Octave o)
 
 b, bs, bss, bf, bsf :: Int -> Dur -> Note
-b o dur = createNote B Natural (Octave o) dur
-bs o dur = createNote B Sharp (Octave o) dur
-bf o dur = createNote B Flat (Octave o) dur
-bss o dur = createNote B SemiSharp (Octave o) dur
-bsf o dur = createNote B SemiFlat (Octave o) dur
+b o = createNote B Natural (Octave o)
+bs o = createNote B Sharp (Octave o)
+bf o = createNote B Flat (Octave o)
+bss o = createNote B SemiSharp (Octave o)
+bsf o = createNote B SemiFlat (Octave o)
 
 t1, t2, t4, t8, t16, t32, t64, t128, t256, t512, t1024 :: Dur
 [t1, t2, t4, t8, t16, t32, t64, t128, t256, t512, t1024] = [toDur n | n <- [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]]
   where
     toDur :: Int -> Dur
-    toDur n = intToDur n
+    toDur = intToDur
 
 d1, d2, d4, d8, d16, d32, d64, d128, d256, d512, d1024 :: Dur
 [d1, d2, d4, d8, d16, d32, d64, d128, d256, d512, d1024] = [Dotted dur | dur <- [t1, t2, t4, t8, t16, t32, t64, t128, t256, t512, t1024]]
