@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -5,12 +6,12 @@
 {-# LANGUAGE PostfixOperators #-}
 
 import Data.Maybe (fromMaybe)
-import Data.Ratio
+import Data.Ratio (denominator, numerator, (%))
 
 {-
 
-cs' = Pitch C Sharp (Octave 0)
-df' = Pitch D Flat (Octave 0)
+cs' = Pitch C Sharp $ Octave 0
+df' = Pitch D Flat $ Octave 0
 
 -- Enarmonic ?
 cs' =~ df'
@@ -97,12 +98,28 @@ data Pitch = Pitch NoteName Accidental Octave
 data Note = Note Pitch Dur
   deriving (Show, Eq)
 
-class HasPitch a where
+class Pitched a where
   pitch :: a -> Pitch
   toHertz :: a -> Float
   pitchRat :: a -> Rational
 
-calculatePitchRat :: HasPitch a => a -> Rational
+-- respell :: (NoteName, Accidental) -> (NoteName, Accidental)
+-- respell ps = case ps of
+--   (C, Sharp) -> (D, Flat)
+--   (D, Sharp) -> (E, Flat)
+--   (F, Sharp) -> (G, Flat)
+--   (G, Sharp) -> (A, Flat)
+--   (A, Sharp) -> (B, Flat)
+--   (C, Flat) -> (B, Natural)
+--   (D, Flat) -> (C, Sharp)
+--   (E, Flat) -> (D, Sharp)
+--   (F, Flat) -> (E, Natural)
+--   (G, Flat) -> (F, Sharp)
+--   (A, Flat) -> (G, Sharp)
+--   (B, Flat) -> (A, Sharp)
+--   _ -> error "Invalid or non-enharmonic pitch"
+
+calculatePitchRat :: Pitched a => a -> Rational
 calculatePitchRat a =
   let (Pitch notename accidental (Octave oct)) = pitch a
       basePitchValue = fromMaybe 0 (lookup notename basePitchTable)
@@ -129,12 +146,12 @@ basePitchTable =
     (B, 11)
   ]
 
-instance HasPitch Pitch where
+instance Pitched Pitch where
   pitch = id
   pitchRat = calculatePitchRat
   toHertz p = midiCps (fromRational (pitchRat p) - 60)
 
-instance HasPitch Note where
+instance Pitched Note where
   pitch (Note p _) = p
   pitchRat = calculatePitchRat . pitch
   toHertz = toHertz . pitch
@@ -146,7 +163,7 @@ instance Ord Note where
   compare n1 n2 = compare (pitchRat $ pitch n1) (pitchRat $ pitch n2)
 
 -- Enharmonic
-(=~) :: (HasPitch a, HasPitch b) => a -> b -> Bool
+(=~) :: (Pitched a, Pitched b) => a -> b -> Bool
 a =~ b = pitchRat a == pitchRat b
 
 durToRat :: Dur -> Rational
@@ -202,6 +219,9 @@ pitchToRat (Pitch notename accidental (Octave oct)) =
 
 midiCps :: Float -> Float
 midiCps note = 440.0 * 2.0 ** ((note - 69.0) * (1.0 / 12.0))
+
+cpsMidi :: Float -> Float
+cpsMidi frequency = 69.0 + 12.0 * logBase 2 (frequency / 440.0)
 
 middleC :: Pitch
 middleC = Pitch C Natural (Octave 0)
