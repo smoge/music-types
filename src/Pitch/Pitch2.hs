@@ -3,8 +3,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PostfixOperators #-}
-{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 import Data.Maybe (fromMaybe)
 import Data.Ratio
@@ -78,19 +76,19 @@ newtype Octave = Octave Int
 instance Show Octave where
   show (Octave oct) = show oct
 
-class HasOctaves a where
+class HasOctave a where
   octave :: a -> Octave
 
-instance HasOctaves Octave where
+instance HasOctave Octave where
   octave = id
 
-instance HasOctaves Int where
+instance HasOctave Int where
   octave = Octave . fromIntegral
 
-instance HasOctaves Integer where
+instance HasOctave Integer where
   octave = Octave . fromIntegral
 
-instance HasOctaves Float where
+instance HasOctave Float where
   octave = Octave . round
 
 data Pitch = Pitch NoteName Accidental Octave
@@ -147,7 +145,7 @@ instance Ord Pitch where
 instance Ord Note where
   compare n1 n2 = compare (pitchRat $ pitch n1) (pitchRat $ pitch n2)
 
--- Enharmonic?
+-- Enharmonic
 (=~) :: (HasPitch a, HasPitch b) => a -> b -> Bool
 a =~ b = pitchRat a == pitchRat b
 
