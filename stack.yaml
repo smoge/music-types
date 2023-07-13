@@ -10,6 +10,7 @@
 #
 # resolver: lts-3.5
 resolver: lts-20.26
+#resolver: lts-21.2
 # resolver: ghc-7.10.2
 #
 # The location of a snapshot can be provided as a file or url. Stack assumes
@@ -30,10 +31,15 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-- QuickCheck-2.14.3
 - parsec-3.1.16.1
 - pretty-show-1.10
-
+- lens-5.1.1
+- tree-view-0.5.1
+- memoize-1.1.2
+- containers-0.6.5.1
+- regex-tdfa-1.3.2.1
+- HUnit-1.6.2.0@sha256:1a79174e8af616117ad39464cac9de205ca923da6582825e97c10786fda933a4,1588
+# - QuickCheck-2.14.3
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
@@ -59,7 +65,7 @@ extra-deps:
 #
 # Extra directories used by Stack for building
 # extra-include-dirs: [/path/to/dir]
-# extra-lib-dirs: [/path/to/dir]
+# extra-lib-dirs: [src/Math]
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
