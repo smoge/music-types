@@ -9,7 +9,35 @@ import Data.Ratio ((%))
 
 data Arrow = Up | Down deriving (Show, Eq)
 
-data AccidentalName = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | DoubleFlat | DoubleSharp | ThirdSharp | ThirdFlat | SixthSharp | SixthFlat | TwelfthSharp | TwelfthFlat | EigthSharp | EigthSFlat | CustomAccidental Rational
+data AccidentalName
+  = Sharp
+  | Flat
+  | Natural
+  | QuarterSharp
+  | QuarterFlat
+  | ThreeQuartersSharp
+  | ThreeQuartersFlat
+  | DoubleFlat
+  | DoubleSharp
+  | ThirdSharp
+  | ThirdFlat
+  | SixthSharp
+  | SixthFlat
+  | TwelfthSharp
+  | TwelfthFlat
+  | EighthSharp
+  | EighthFlat
+  | FiveTwelfthsSharp
+  | FiveTwelfthsFlat
+  | SevenTwelfthsSharp
+  | SevenTwelfthsFlat
+  | FiveSixthsSharp
+  | FiveSixthsFlat
+  | ElevenTwelfthsSharp
+  | ElevenTwelfthsFlat
+  | TwoThirdsSharp
+  | TwoThirdsFlat
+  | CustomAccidental Rational
   deriving (Show, Eq)
 
 data Accidental = Accidental
@@ -25,20 +53,30 @@ accidentals =
   [ Accidental Flat "f" Nothing ((-1) % 1),
     Accidental Natural "" Nothing (0 % 1),
     Accidental Sharp "s" Nothing (1 % 1),
-    Accidental SemiFlat "qf" Nothing ((-1) % 2),
-    Accidental SemiSharp "qs" Nothing (1 % 2),
-    Accidental SesquiFlat "tqf" Nothing ((-3) % 2),
-    Accidental SesquiSharp "tqs" Nothing (3 % 2),
+    Accidental QuarterFlat "qf" Nothing ((-1) % 2),
+    Accidental QuarterSharp "qs" Nothing (1 % 2),
+    Accidental ThreeQuartersFlat "tqf" Nothing ((-3) % 2),
+    Accidental ThreeQuartersSharp "tqs" Nothing (3 % 2),
     Accidental DoubleSharp "ss" Nothing (2 % 1),
     Accidental DoubleFlat "ff" Nothing ((-2) % 1),
     Accidental ThirdSharp "ts" Nothing (2 % 3),
     Accidental ThirdFlat "tf" Nothing ((-2) % 3),
     Accidental SixthSharp "sis" Nothing (1 % 3),
     Accidental SixthFlat "sif" Nothing ((-1) % 3),
-    Accidental TwelfthSharp "ts" Nothing (1 % 6),
-    Accidental TwelfthFlat "tf" Nothing ((-1) % 6),
-    Accidental EigthSharp "es" Nothing (1 % 4),
-    Accidental EigthSFlat "tf" Nothing ((-1) % 4)
+    Accidental TwelfthSharp "tes" Nothing (1 % 6),
+    Accidental TwelfthFlat "tef" Nothing ((-1) % 6),
+    Accidental EighthSharp "es" Nothing (1 % 4),
+    Accidental EighthFlat "tf" Nothing ((-1) % 4),
+    Accidental FiveTwelfthsSharp "fts" Nothing (5 % 6),
+    Accidental FiveTwelfthsFlat "ftf" Nothing ((-5) % 6),
+    Accidental SevenTwelfthsSharp "sevents" Nothing (7 % 6),
+    Accidental SevenTwelfthsFlat "seventf" Nothing ((-7) % 6),
+    Accidental FiveSixthsSharp "fsixs" Nothing (5 % 3),
+    Accidental FiveSixthsFlat "fsixf" Nothing ((-5) % 3),
+    Accidental ElevenTwelfthsSharp "elevents" Nothing (11 % 6),
+    Accidental ElevenTwelfthsFlat "elevenf" Nothing ((-11) % 6),
+    Accidental TwoThirdsSharp "twothirds" Nothing (1 % 3),
+    Accidental TwoThirdsFlat "twothirdf" Nothing ((-1) % 3)
   ]
 
 accidentalNameToAbbreviation :: [(AccidentalName, String)]
@@ -132,6 +170,34 @@ instance Initializable AccidentalRational where
         abbreviation = fromMaybe "" $ lookup semitones accidentalSemitonesToAbbreviation
      in Accidental {_accName = name, _accAbbreviation = abbreviation, _accSemitones = semitones, _accArrow = Nothing}
 
+----
+
+quarterSharpen :: Accidental -> Accidental
+quarterSharpen = over semitone (+ (1 % 2))
+
+quarterFlatten :: Accidental -> Accidental
+quarterFlatten = over semitone (subtract (1 % 2))
+
+eighthSharpen :: Accidental -> Accidental
+eighthSharpen = over semitone (+ (1 % 4))
+
+eighthFlatten :: Accidental -> Accidental
+eighthFlatten = over semitone (subtract (1 % 4))
+
+thirdSharpen :: Accidental -> Accidental
+thirdSharpen = over semitone (+ (3 % 2))
+
+thirdFlatten :: Accidental -> Accidental
+thirdFlatten = over semitone (subtract (3 % 2))
+
+sixthSharpen :: Accidental -> Accidental
+sixthSharpen = over semitone (+ (1 % 3))
+
+sixthFlatten :: Accidental -> Accidental
+sixthFlatten = over semitone (subtract (1 % 3))
+
+----
+
 sharp :: Accidental
 sharp = initializeAccidental Sharp
 
@@ -142,22 +208,46 @@ natural :: Accidental
 natural = initializeAccidental Natural
 
 semiSharp :: Accidental
-semiSharp = initializeAccidental SemiSharp
+semiSharp = initializeAccidental QuarterSharp
 
 semiFlat :: Accidental
-semiFlat = initializeAccidental SemiFlat
+semiFlat = initializeAccidental QuarterFlat
 
-sesquiSharp :: Accidental
-sesquiSharp = initializeAccidental SesquiSharp
+quarterSharp :: Accidental
+quarterSharp = initializeAccidental QuarterSharp
 
-sesquiFlat :: Accidental
-sesquiFlat = initializeAccidental SesquiFlat
+quarterFlat :: Accidental
+quarterFlat = initializeAccidental QuarterFlat
+
+threeQuartersSharp :: Accidental
+threeQuartersSharp = initializeAccidental ThreeQuartersSharp
+
+threeQuartersFlat :: Accidental
+threeQuartersFlat = initializeAccidental ThreeQuartersFlat
 
 doubleFlat :: Accidental
 doubleFlat = initializeAccidental DoubleFlat
 
 doubleSharp :: Accidental
 doubleSharp = initializeAccidental DoubleSharp
+
+sixthSharp :: Accidental
+sixthSharp = initializeAccidental SixthSharp
+
+sixthFlat :: Accidental
+sixthFlat = initializeAccidental SixthFlat
+
+twelfthSharp :: Accidental
+twelfthSharp = initializeAccidental TwelfthSharp
+
+twelfthFlat :: Accidental
+twelfthFlat = initializeAccidental TwelfthFlat
+
+eighthSharp :: Accidental
+eighthSharp = initializeAccidental EighthSharp
+
+eighthFlat :: Accidental
+eighthFlat = initializeAccidental EighthFlat
 
 {-
 
@@ -190,5 +280,59 @@ Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up,
 
 ghci > semiSharp & semitone -~ (1 % 4)
 Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
+
+-}
+
+{-
+
+import Control.Lens
+
+-- Accessing Accidental properties using lenses
+
+-- Get the semitones of the 'sharp' Accidental
+example1 = sharp ^. semitone -- Result: 1 % 1
+
+-- Get the name of the 'sharp' Accidental
+example2 = sharp ^. name -- Result: Sharp
+
+-- Get the abbreviation of the 'sharp' Accidental
+example3 = sharp ^. abbreviation -- Result: "s"
+
+-- Modifying Accidental properties using lenses
+
+-- Set the semitones of the 'flat' Accidental to 1 % 1
+example4 = flat & semitone .~ (1 % 1)
+
+-- Result: Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
+
+-- Increase the semitones of the 'flat' Accidental by 1 % 1
+example5 = flat & semitone +~ (1 % 1)
+
+-- Result: Accidental {_accName = Natural, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 0 % 1}
+
+-- Set the name of the 'natural' Accidental to 'DoubleSharp'
+example6 = natural & name .~ DoubleSharp
+
+-- Result: Accidental {_accName = DoubleSharp, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 2 % 1}
+
+-- Append 'x' to the abbreviation of the 'doubleSharp' Accidental
+example7 = doubleSharp & abbreviation %~ (++ "x")
+
+-- Result: Accidental {_accName = CustomAccidental (0 % 1), _accAbbreviation = "ssx", _accArrow = Nothing, _accSemitones = 2 % 1}
+
+-- Accessing and modifying Accidental properties using lenses
+
+-- Access the semitones of the 'semiFlat' Accidental and add 0.5 to the value
+example8 = semiFlat ^. semitone + 0.5 -- Result: 0 % 1
+
+-- Set the arrow of the 'doubleFlat' Accidental to 'Just Up'
+example9 = doubleFlat & arrow ?~ Up
+
+-- Result: Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up, _accSemitones = -2 % 1}
+
+-- Decrease the semitones of the 'semiSharp' Accidental by 1 % 4
+example10 = semiSharp & semitone -~ (1 % 4)
+
+-- Result: Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
 
 -}
