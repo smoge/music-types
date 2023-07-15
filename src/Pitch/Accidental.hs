@@ -1,168 +1,186 @@
-{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Accidental
-  ( Accidental (..),
-    accidentalNameToAbbreviation,
-    accidentalNameToSemitones,
-    initializeAccidental,
-    accidentalSemitonesToName,
-    getAccidentalNameForSemitones,
-    setArrow,
-    setName,
-    setSemitones,
-  )
-where
-
-import Data.Bifunctor (second)
+import Control.Lens
+import Control.Lens.Operators
 import Data.Maybe (fromMaybe)
-import Data.Ratio
-import Text.Regex.TDFA ((=~))
+import Data.Ratio ((%))
+
+data Arrow = Up | Down deriving (Show, Eq)
+
+data AccidentalName = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | DoubleFlat | DoubleSharp | CustomAccidental Rational
+  deriving (Show, Eq)
 
 data Accidental = Accidental
-  { name :: String,
-    arrow :: Maybe Bool,
-    semitones :: Rational
+  { _accName :: AccidentalName,
+    _accAbbreviation :: String,
+    _accArrow :: Maybe Arrow,
+    _accSemitones :: Rational
   }
   deriving (Show)
 
-accidentalNameToAbbreviation :: [(String, String)]
-accidentalNameToAbbreviation =
-  [ ("double flat", "ff"),
-    ("three-quarters flat", "tqf"),
-    ("flat", "f"),
-    ("natural", ""),
-    ("quarter sharp", "qs"),
-    ("sharp", "s"),
-    ("three-quarters sharp", "tqs"),
-    ("double sharp", "ss")
+accidentals :: [Accidental]
+accidentals =
+  [ Accidental Flat "f" Nothing ((-1) % 1),
+    Accidental Natural "" Nothing (0 % 1),
+    Accidental Sharp "s" Nothing (1 % 1),
+    Accidental SemiFlat "qf" Nothing ((-1) % 2),
+    Accidental SemiSharp "qs" Nothing (1 % 2),
+    Accidental SesquiFlat "tqf" Nothing ((-3) % 2),
+    Accidental SesquiSharp "tqs" Nothing (3 % 2),
+    Accidental DoubleSharp "ss" Nothing (2 % 1),
+    Accidental DoubleFlat "ff" Nothing ((-2) % 1)
   ]
 
-accidentalNameToSemitones :: [(String, Rational)]
-accidentalNameToSemitones =
-  [ ("double flat", -2),
-    ("three-quarters flat", -(3 % 2)),
-    ("flat", -1),
-    ("quarter flat", -(1 % 2)),
-    ("natural", 0),
-    ("quarter sharp", 1 % 2),
-    ("sharp", 1),
-    ("three-quarters sharp", 3 % 2),
-    ("double sharp", 2)
-  ]
+accidentalNameToAbbreviation :: [(AccidentalName, String)]
+accidentalNameToAbbreviation = [(_accName accidental, _accAbbreviation accidental) | accidental <- accidentals]
+
+accidentalNameToSemitones :: [(AccidentalName, Rational)]
+accidentalNameToSemitones = [(_accName accidental, _accSemitones accidental) | accidental <- accidentals]
 
 accidentalAbbreviationToSemitones :: [(String, Rational)]
-accidentalAbbreviationToSemitones =
-  [ ("ff", -2),
-    ("tqf", -(3 % 2)),
-    ("f", -1),
-    ("qf", -(1 % 2)),
-    ("", 0),
-    ("qs", 1 % 2),
-    ("s", 1),
-    ("tqs", 3 % 2),
-    ("ss", 2)
-  ]
+accidentalAbbreviationToSemitones = [(_accAbbreviation accidental, _accSemitones accidental) | accidental <- accidentals]
 
 invertMapping :: (Eq a, Eq b) => [(a, b)] -> [(b, a)]
 invertMapping = map (\(a, b) -> (b, a))
 
-accidentalAbreviationToName :: [(String, String)]
-accidentalAbreviationToName = invertMapping accidentalNameToAbbreviation
+accidentalAbbreviationToName :: [(String, AccidentalName)]
+accidentalAbbreviationToName = invertMapping accidentalNameToAbbreviation
 
 accidentalSemitonesToAbbreviation :: [(Rational, String)]
 accidentalSemitonesToAbbreviation = invertMapping accidentalAbbreviationToSemitones
 
-accidentalSemitonesToName :: [(Rational, String)]
+accidentalSemitonesToName :: [(Rational, AccidentalName)]
 accidentalSemitonesToName = invertMapping accidentalNameToSemitones
 
--- accidentalSemitonesToName :: [(Rational, String)]
--- accidentalSemitonesToName =
---   map (second convertAbbreviationToName) accidentalSemitonesToAbbreviation
---   where
---     convertAbbreviationToName abbrev = lookup abbrev accidentalAbreviationToName
+name :: Lens' Accidental AccidentalName
+name = lens _accName (\acc newName -> acc {_accName = newName, _accSemitones = getSemitones newName, _accAbbreviation = getAbbreviation (_accSemitones acc)})
+  where
+    getSemitones n = fromMaybe (error "Invalid name value") $ lookup n accidentalNameToSemitones
 
--- accidentalSemitonesToName :: [(Rational, String)]
--- accidentalSemitonesToName =
---   map (second convertAbbreviationToName) accidentalAbbreviationToSemitones
---   where
---     convertAbbreviationToName :: Rational -> String
---     convertAbbreviationToName semitones = fromMaybe (error "Invalid semitones value") $ lookup semitones (map swap accidentalNameToAbbreviation)
+    getAbbreviation :: Rational -> String
+    getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
--- swap :: (a, b) -> (b, a)
--- swap (x, y) = (y, x)
+abbreviation :: Lens' Accidental String
+abbreviation = lens _accAbbreviation (\acc newAbbreviation -> acc {_accAbbreviation = newAbbreviation, _accName = getName newAbbreviation, _accSemitones = getSemitones (_accName acc)})
+  where
+    getName :: String -> AccidentalName
+    getName a = fromMaybe (CustomAccidental 0) $ lookup a accidentalAbbreviationToName
 
-getAccidentalNameForSemitones :: Rational -> String
-getAccidentalNameForSemitones semitones =
-  fromMaybe "Invalid semitones value" $ lookup semitones accidentalSemitonesToName
+    getSemitones :: AccidentalName -> Rational
+    getSemitones n = fromMaybe 0 $ lookup n accidentalNameToSemitones
+
+arrow :: Lens' Accidental (Maybe Arrow)
+arrow = lens _accArrow (\acc newArrow -> acc {_accArrow = newArrow})
+
+semitone :: Lens' Accidental Rational
+semitone = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemitones, _accName = getName newSemitones, _accAbbreviation = getAbbreviation newSemitones})
+  where
+    getName :: Rational -> AccidentalName
+    getName s = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
+
+    getAbbreviation :: Rational -> String
+    getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
 instance Semigroup Accidental where
   (<>) a1 a2 =
-    Accidental
-      { name = getName (semitones a1 + semitones a2),
-        arrow = Nothing,
-        semitones = semitones a1 + semitones a2
-      }
+    let newSemitones = _accSemitones a1 + _accSemitones a2
+     in Accidental
+          { _accName = getName newSemitones,
+            _accAbbreviation = getAbbreviation newSemitones,
+            _accArrow = Nothing,
+            _accSemitones = newSemitones
+          }
     where
-      getName semitones = case lookup semitones accidentalSemitonesToName of
-        Just name -> name
-        Nothing -> show (numerator semitones) ++ "/" ++ show (denominator semitones)
+      getName s = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
+      getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
-initializeAccidental :: String -> Accidental
-initializeAccidental str =
-  case lookup str accidentalNameToAbbreviation of
-    Just abbreviation ->
-      let semitones = fromMaybe (error "Invalid accidental abbreviation") $ lookup abbreviation accidentalAbbreviationToSemitones
-       in Accidental {name = str, arrow = Nothing, semitones = semitones}
-    Nothing ->
-      case lookup str accidentalAbbreviationToSemitones of
-        Just semitones ->
-          let name = fromMaybe (error "Invalid accidental abbreviation") $ lookup str accidentalAbreviationToName
-           in Accidental {name = name, arrow = Nothing, semitones = semitones}
-        Nothing -> error "Invalid accidental name or abbreviation"
+class Initializable a where
+  initializeAccidental :: a -> Accidental
 
-getName :: Accidental -> String
-getName = name
+instance Initializable AccidentalName where
+  initializeAccidental accidentalName =
+    Accidental
+      { _accName = accidentalName,
+        _accAbbreviation = fromMaybe "" $ lookup accidentalName accidentalNameToAbbreviation,
+        _accSemitones = fromMaybe 0 $ lookup accidentalName accidentalNameToSemitones,
+        _accArrow = Nothing
+      }
 
-getArrow :: Accidental -> Maybe Bool
-getArrow = arrow
+newtype AccidentalString = AccidentalString String
 
-getSemitones :: Accidental -> Rational
-getSemitones = semitones
+instance Initializable AccidentalString where
+  initializeAccidental (AccidentalString abbreviation) =
+    let name = fromMaybe (CustomAccidental 0) $ lookup abbreviation accidentalAbbreviationToName
+        semitones = fromMaybe 0 $ lookup abbreviation accidentalAbbreviationToSemitones
+     in Accidental {_accName = name, _accAbbreviation = abbreviation, _accSemitones = semitones, _accArrow = Nothing}
 
-setArrow :: Maybe Bool -> Accidental -> Accidental
-setArrow newArrow accidental = accidental {arrow = newArrow}
+newtype AccidentalRational = AccidentalRational Rational
 
-setName :: String -> Accidental -> Accidental
-setName newName accidental =
-  let newSemitones = semitones (initializeAccidental newName)
-   in accidental {name = newName, semitones = newSemitones}
+instance Initializable AccidentalRational where
+  initializeAccidental (AccidentalRational semitones) =
+    let name = fromMaybe (CustomAccidental semitones) $ lookup semitones accidentalSemitonesToName
+        abbreviation = fromMaybe "" $ lookup semitones accidentalSemitonesToAbbreviation
+     in Accidental {_accName = name, _accAbbreviation = abbreviation, _accSemitones = semitones, _accArrow = Nothing}
 
-setSemitones :: Rational -> Accidental -> Accidental
-setSemitones newSemitones accidental =
-  let newName = fromMaybe (error "Invalid semitones value") $ lookup newSemitones accidentalSemitonesToName
-   in accidental {name = newName, semitones = newSemitones}
+sharp :: Accidental
+sharp = initializeAccidental Sharp
+
+flat :: Accidental
+flat = initializeAccidental Flat
+
+natural :: Accidental
+natural = initializeAccidental Natural
+
+semiSharp :: Accidental
+semiSharp = initializeAccidental SemiSharp
+
+semiFlat :: Accidental
+semiFlat = initializeAccidental SemiFlat
+
+sesquiSharp :: Accidental
+sesquiSharp = initializeAccidental SesquiSharp
+
+sesquiFlat :: Accidental
+sesquiFlat = initializeAccidental SesquiFlat
+
+doubleFlat :: Accidental
+doubleFlat = initializeAccidental DoubleFlat
+
+doubleSharp :: Accidental
+doubleSharp = initializeAccidental DoubleSharp
 
 {-
 
-> initializeAccidental "f"
-Accidental {name = "flat", arrow = Nothing, semitones = (-1) % 1}
+ghci > sharp ^. semitone
+1 % 1
 
-> initializeAccidental "s"
-Accidental {name = "sharp", arrow = Nothing, semitones = 1 % 1}
+ghci > sharp ^. name
+Sharp
 
-> initializeAccidental "quarter sharp"
-Accidental {name = "quarter sharp", arrow = Nothing, semitones = 1 % 2}
+ghci > sharp ^. abbreviation
+"s"
 
-acc = initializeAccidental "sharp"
-acc
-getName acc
-acc2 = setName "natural" acc
-acc2
+ghci > flat & semitone .~ (1 % 1)
+Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
 
-semitones acc2 == (0%1)
+ghci > flat & semitone +~ (1 % 1)
+Accidental {_accName = Natural, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 0 % 1}
 
-acc3 = setSemitones (1%2) acc
-acc3
--- Accidental {name = "quarter sharp", arrow = Nothing, semitones = 1 % 2}
+ghci> natural & name .~ DoubleSharp
+Accidental {_accName = DoubleSharp, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 2 % 1}
+
+ghci> doubleSharp & abbreviation %~ (++ "x")
+Accidental {_accName = CustomAccidental (0 % 1), _accAbbreviation = "ssx", _accArrow = Nothing, _accSemitones = 2 % 1}
+
+ghci> semiFlat ^. semitone + 0.5
+0 % 1
+
+ghci> doubleFlat & arrow ?~ Up
+Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up, _accSemitones = (-2) %
+
+ghci > semiSharp & semitone -~ (1 % 4)
+Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
 
 -}
