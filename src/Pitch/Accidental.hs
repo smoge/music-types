@@ -12,7 +12,6 @@ module Accidental
     abbreviation,
     defaultAccidental,
     accidentals,
-    orderedSemitones,
     accidentalNameToAbbreviation,
     accidentalNameToSemitones,
     accidentalAbbreviationToSemitones,
@@ -59,7 +58,9 @@ module Accidental
 where
 
 import Control.Lens
-import Data.Maybe (fromMaybe)
+import Data.List (maximumBy, minimumBy, sortOn)
+import Data.Maybe (fromMaybe, isJust)
+import Data.Ord (comparing)
 import Data.Ratio ((%))
 
 data Arrow = Up | Down deriving (Show, Eq)
@@ -117,6 +118,88 @@ defaultAccidental =
       _accSemitones = 0 % 1
     }
 
+class Initializable a where
+  initializeAccidental :: a -> Accidental
+
+instance Initializable AccidentalName where
+  initializeAccidental accidentalName =
+    Accidental
+      { _accName = accidentalName,
+        _accAbbreviation = fromMaybe "" $ lookup accidentalName accidentalNameToAbbreviation,
+        _accSemitones = fromMaybe 0 $ lookup accidentalName accidentalNameToSemitones,
+        _accArrow = Nothing
+      }
+
+newtype AccidentalString = AccidentalString String
+
+instance Initializable AccidentalString where
+  initializeAccidental (AccidentalString a) =
+    let n = fromMaybe (CustomAccidental 0) $ lookup a accidentalAbbreviationToName
+        s = fromMaybe 0 $ lookup a accidentalAbbreviationToSemitones
+     in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
+
+newtype AccidentalRational = AccidentalRational Rational
+
+instance Initializable AccidentalRational where
+  initializeAccidental (AccidentalRational s) =
+    let n = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
+        a = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
+     in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
+
+instance Num Accidental where
+  (+) a1 a2 =
+    let newSemitones = _accSemitones a1 + _accSemitones a2
+     in initializeAccidental (AccidentalRational newSemitones)
+
+  (-) a1 a2 =
+    let newSemitones = _accSemitones a1 - _accSemitones a2
+     in initializeAccidental (AccidentalRational newSemitones)
+
+  (*) a1 a2 =
+    let newSemitones = _accSemitones a1 * _accSemitones a2
+     in initializeAccidental (AccidentalRational newSemitones)
+
+  abs a =
+    let absSemitones = abs (_accSemitones a)
+     in initializeAccidental (AccidentalRational absSemitones)
+
+  signum a =
+    case compare (_accSemitones a) 0 of
+      LT -> initializeAccidental (AccidentalRational (-1)) -- 'flat'
+      EQ -> initializeAccidental (AccidentalRational 0) -- 'natural'
+      GT -> initializeAccidental (AccidentalRational 1) -- 'sharp'
+
+  fromInteger i = initializeAccidental (AccidentalRational $ fromInteger i)
+
+{-
+ghci> signum flat == flat
+True
+
+ghci > accidental = fromInteger 1 :: Accidental
+
+ghci > accidental
+Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
+-}
+
+instance Fractional Accidental where
+  fromRational r = initializeAccidental (AccidentalRational r)
+
+  (/) a1 a2 =
+    let newSemitones = _accSemitones a1 / _accSemitones a2
+     in initializeAccidental (AccidentalRational newSemitones)
+
+{-
+ghci > acc = fromRational (1.5 :: Rational) :: Accidental
+
+ghci > acc
+Accidental {_accName = ThreeQuartersSharp, _accAbbreviation = "tqs", _accArrow = Nothing, _accSemitones = 3 % 2}
+
+ghci > acc2 = -0.5 :: Accidental
+
+ghci > acc + acc2
+Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
+-}
+
 accidentals :: [Accidental]
 accidentals =
   [ Accidental Flat "f" Nothing ((-1) % 1),
@@ -150,8 +233,73 @@ accidentals =
     Accidental ThreeEighthsFlat "tef" Nothing ((-3) % 4)
   ]
 
-orderedSemitones :: [Rational]
-orderedSemitones = [(-2) % 1, (-11) % 6, (-5) % 3, (-3) % 2, (-7) % 6, (-1) % 1, (-5) % 6, (-2) % 3, (-1) % 2, (-1) % 3, (-1) % 3, (-1) % 4, (-1) % 6, 0 % 1, 1 % 6, 1 % 4, 1 % 3, 1 % 3, 1 % 2, 2 % 3, 5 % 6, 1 % 1, 7 % 6, 3 % 2, 5 % 3, 11 % 6, 2 % 1]
+orderedAccidentals :: [Accidental]
+orderedAccidentals = sortOn _accSemitones accidentals
+
+sortAccidentalsBySemitones :: [Accidental] -> [Accidental]
+sortAccidentalsBySemitones = sortOn _accSemitones
+
+getAccidentalsAbbreviations :: [Accidental] -> [String]
+getAccidentalsAbbreviations = map _accAbbreviation
+
+et12Accidentals :: [Accidental]
+et12Accidentals = map initializeAccidental [Flat, Sharp, Natural, DoubleFlat, DoubleSharp]
+
+et24Accidentals :: [Accidental]
+et24Accidentals = map initializeAccidental [Flat, Sharp, Natural, DoubleFlat, DoubleSharp, QuarterSharp, QuarterFlat, ThreeQuartersSharp, ThreeQuartersFlat]
+
+etAccidentalMap :: Int -> [(Int, Accidental)]
+etAccidentalMap 12 = [(0, natural), (1, sharp), (-1, flat), (2, doubleSharp), (-2, doubleFlat)]
+etAccidentalMap 24 = [(0, natural), (2, sharp), (-2, flat), (4, doubleSharp), (-4, doubleFlat), (1, quarterSharp), (-1, quarterFlat), (3, threeQuartersSharp), (-3, threeQuartersFlat)]
+
+getAccidentalBySteps :: Int -> Int -> Maybe Accidental
+getAccidentalBySteps divisions steps
+  | divisions `elem` ([12, 24] :: [Int]) = lookup steps (etAccidentalMap divisions)
+  | otherwise = Nothing
+
+isET12Accidental :: Accidental -> Bool
+isET12Accidental acc = _accName acc `elem` map _accName et12Accidentals
+
+isET24Accidental :: Accidental -> Bool
+isET24Accidental acc = _accName acc `elem` map _accName et24Accidentals
+
+roundToNearestAccidental :: Rational -> Accidental
+roundToNearestAccidental num =
+  minimumBy (comparing (abs . subtract num . _accSemitones)) accidentals
+
+{-
+roundToNearestAccidental (11 % 15)
+Accidental {_accName = ThreeEighthsSharp, _accAbbreviation = "tes", _accArrow = Nothing, _accSemitones = 3 % 4}
+
+roundToNearestAccidental (2 % 7)
+Accidental {_accName = EighthSharp, _accAbbreviation = "es", _accArrow = Nothing, _accSemitones = 1 % 4}
+
+roundToNearestAccidental (13 % 21)
+Accidental {_accName = ThirdSharp, _accAbbreviation = "rs", _accArrow = Nothing, _accSemitones = 2 % 3}
+
+roundToNearestAccidental (0.83274 :: Rational)
+Accidental {_accName = FiveTwelfthsSharp, _accAbbreviation = "fts", _accArrow = Nothing, _accSemitones = 5 % 6}
+
+-}
+
+roundToET12Accidental :: Accidental -> Accidental
+roundToET12Accidental acc =
+  let floorAccidental = maximumBy (comparing _accSemitones) $ filter (<= acc) et12Accidentals
+      ceilingAccidental = minimumBy (comparing _accSemitones) $ filter (>= acc) et12Accidentals
+   in if abs (_accSemitones floorAccidental - _accSemitones acc) <= abs (_accSemitones ceilingAccidental - _accSemitones acc)
+        then floorAccidental
+        else ceilingAccidental
+
+roundToET24Accidental :: Accidental -> Accidental
+roundToET24Accidental acc =
+  let floorAccidental = maximumBy (comparing _accSemitones) $ filter (<= acc) et24Accidentals
+      ceilingAccidental = minimumBy (comparing _accSemitones) $ filter (>= acc) et24Accidentals
+   in if abs (_accSemitones floorAccidental - _accSemitones acc) <= abs (_accSemitones ceilingAccidental - _accSemitones acc)
+        then floorAccidental
+        else ceilingAccidental
+
+hasArrow :: Accidental -> Bool
+hasArrow acc = isJust (_accArrow acc)
 
 accidentalNameToAbbreviation :: [(AccidentalName, String)]
 accidentalNameToAbbreviation = [(_accName accidental, _accAbbreviation accidental) | accidental <- accidentals]
@@ -207,34 +355,6 @@ instance Semigroup Accidental where
       getName s = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
       getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
-class Initializable a where
-  initializeAccidental :: a -> Accidental
-
-instance Initializable AccidentalName where
-  initializeAccidental accidentalName =
-    Accidental
-      { _accName = accidentalName,
-        _accAbbreviation = fromMaybe "" $ lookup accidentalName accidentalNameToAbbreviation,
-        _accSemitones = fromMaybe 0 $ lookup accidentalName accidentalNameToSemitones,
-        _accArrow = Nothing
-      }
-
-newtype AccidentalString = AccidentalString String
-
-instance Initializable AccidentalString where
-  initializeAccidental (AccidentalString a) =
-    let n = fromMaybe (CustomAccidental 0) $ lookup a accidentalAbbreviationToName
-        s = fromMaybe 0 $ lookup a accidentalAbbreviationToSemitones
-     in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
-
-newtype AccidentalRational = AccidentalRational Rational
-
-instance Initializable AccidentalRational where
-  initializeAccidental (AccidentalRational s) =
-    let n = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
-        a = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
-     in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
-
 semitone :: Lens' Accidental Rational
 semitone = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemitones, _accName = getName newSemitones, _accAbbreviation = getAbbreviation newSemitones})
   where
@@ -244,16 +364,7 @@ semitone = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemi
     getAbbreviation :: Rational -> String
     getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
--- semitonesLens :: Lens' Accidental Rational
--- semitonesLens = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemitones, _accName = getName newSemitones, _accAbbreviation = getAbbreviation newSemitones})
---   where
---     getName :: Rational -> AccidentalName
---     getName s = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
-
---     getAbbreviation :: Rational -> String
---     getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
-
-----
+-- Simple Modifiers
 
 sharpen :: Accidental -> Accidental
 sharpen = over semitone (+ (1 % 1))
@@ -285,7 +396,7 @@ sixthSharpen = over semitone (+ (1 % 3))
 sixthFlatten :: Accidental -> Accidental
 sixthFlatten = over semitone (subtract (1 % 3))
 
-----
+---- Literals
 
 sharp :: Accidental
 sharp = initializeAccidental Sharp
@@ -394,87 +505,43 @@ Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up,
 ghci > semiSharp & semitone -~ (1 % 4)
 Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
 
--}
+ghci > flat & semitone +~ (1 % 3)
+Accidental {_accName = ThirdFlat, _accAbbreviation = "rf", _accArrow = Nothing, _accSemitones = (-2) % 3}
 
-{-
+ghci > flat + flat & semitone +~ (1 % 3)
+Accidental {_accName = FiveSixthsFlat, _accAbbreviation = "fxf", _accArrow = Nothing, _accSemitones = (-5) % 3}
 
-import Data.Ratio ((%))
+orderedAccidentals :: [Accidental]
+orderedAccidentals = sortBy (comparing _accSemitones) accidentals
 
--- Accessing Accidental properties using lenses
+positiveSemitones :: [Accidental] -> [Accidental]
+positiveSemitones = filter (\acc -> _accSemitones acc > 0)
 
--- Get the semitones of the 'sharp' Accidental
-example1 = sharp ^. semitone -- Result: 1 % 1
+negativeSemitones :: [Accidental] -> [Accidental]
+negativeSemitones = filter (\acc -> _accSemitones acc < 0)
 
--- Get the name of the 'sharp' Accidental
-example2 = sharp ^. name -- Result: Sharp
-
--- Get the abbreviation of the 'sharp' Accidental
-example3 = sharp ^. abbreviation -- Result: "s"
-
--- Modifying Accidental properties using lenses
-
--- Set the semitones of the 'flat' Accidental to 1 % 1
-example4 = flat & semitone .~ (1 % 1)
-
--- Result: Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
-
--- Increase the semitones of the 'flat' Accidental by 1 % 1
-example5 = flat & semitone +~ (1 % 1)
-
--- Result: Accidental {_accName = Natural, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 0 % 1}
-
--- Set the name of the 'natural' Accidental to 'DoubleSharp'
-example6 = natural & name .~ DoubleSharp
-
--- Result: Accidental {_accName = DoubleSharp, _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 2 % 1}
-
--- Append 'x' to the abbreviation of the 'doubleSharp' Accidental
-example7 = doubleSharp & abbreviation %~ (++ "x")
-
--- Result: Accidental {_accName = CustomAccidental (0 % 1), _accAbbreviation = "ssx", _accArrow = Nothing, _accSemitones = 2 % 1}
-
--- Accessing and modifying Accidental properties using lenses
-
--- Access the semitones of the 'semiFlat' Accidental and add 0.5 to the value
-example8 = semiFlat ^. semitone + 0.5 -- Result: 0 % 1
-
--- Set the arrow of the 'doubleFlat' Accidental to 'Just Up'
-example9 = doubleFlat & arrow ?~ Up
-
--- Result: Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up, _accSemitones = -2 % 1}
-
--- Decrease the semitones of the 'semiSharp' Accidental by 1 % 4
-example10 = semiSharp & semitone -~ (1 % 4)
-
--- Result: Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
+positiveSemitones orderedAccidentals
+negativeSemitones orderedAccidentals
 
 -}
 
 {-
+ghci > getAccidentalsAbbreviations orderedAccidentals
+["ff", "etf", "fxf", "tqf", "stf", "f", "ftf", "tef", "rf", "qf", "xf", "trf", "ef", "tf", "", "ts", "es", "xs", "trs", "qs", "rs", "tes", "fts", "s", "sts", "tqs", "fxs", "ets", "ss"]
 
-57
-Wyschnegradsky accidentals (72-EDO)
- U+E420 accidentalWyschnegradsky1TwelfthsSharp 72
- U+E421 accidentalWyschnegradsky2TwelfthsSharp 72
- U+E422 accidentalWyschnegradsky3TwelfthsSharp 72
- U+E423 accidentalWyschnegradsky4TwelfthsSharp 72
- U+E424 accidentalWyschnegradsky5TwelfthsSharp 72
- U+E425 accidentalWyschnegradsky6TwelfthsSharp 72
- U+E426 accidentalWyschnegradsky7TwelfthsSharp 72
- U+E427 accidentalWyschnegradsky8TwelfthsSharp 72
- U+E428 accidentalWyschnegradsky9TwelfthsSharp 72
- U+E429 accidentalWyschnegradsky10TwelfthsSharp 72
- U+E42A accidentalWyschnegradsky11TwelfthsSharp 72
- U+E42B accidentalWyschnegradsky1TwelfthsFlat 72
- U+E42C accidentalWyschnegradsky2TwelfthsFlat 72
- U+E42D accidentalWyschnegradsky3TwelfthsFlat 72
- U+E42E accidentalWyschnegradsky4TwelfthsFlat 72
- U+E42F accidentalWyschnegradsky5TwelfthsFlat 72
- U+E430 accidentalWyschnegradsky6TwelfthsFlat 72
- U+E431 accidentalWyschnegradsky7TwelfthsFlat 72
- U+E432 accidentalWyschnegradsky8TwelfthsFlat 72
- U+E433 accidentalWyschnegradsky9TwelfthsFlat 72
- U+E434 accidentalWyschnegradsky10TwelfthsFlat 72
- U+E435 accidentalWyschnegradsky11TwelfthsFlat 72
+ghci> getAccidentalBySteps 12 1
+Just (Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1})
+
+ghci> getAccidentalBySteps 24 1
+Just (Accidental {_accName = QuarterSharp, _accAbbreviation = "qs", _accArrow = Nothing, _accSemitones = 1 % 2})
 
 -}
+
+-- orderedSemitones :: [Rational]
+-- orderedSemitones = [(-2) % 1, (-11) % 6, (-5) % 3, (-3) % 2, (-7) % 6, (-1) % 1, (-5) % 6, (-2) % 3, (-1) % 2, (-1) % 3, (-1) % 3, (-1) % 4, (-1) % 6, 0 % 1, 1 % 6, 1 % 4, 1 % 3, 1 % 3, 1 % 2, 2 % 3, 5 % 6, 1 % 1, 7 % 6, 3 % 2, 5 % 3, 11 % 6, 2 % 1]
+
+-- accidental1 = initializeAccidental FiveSixthsSharp
+
+-- rounded2 = roundToET24Accidental accidental1
+
+-- Accidental {_accName = ThreeQuartersSharp, _accAbbreviation = "tqs", _accArrow = Nothing, _accSemitones = 3 % 2}
