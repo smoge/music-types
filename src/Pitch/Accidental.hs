@@ -118,6 +118,9 @@ defaultAccidental =
       _accSemitones = 0 % 1
     }
 
+(#) :: a -> (a -> b) -> b
+(#) = flip ($)
+
 class Initializable a where
   initializeAccidental :: a -> Accidental
 
@@ -300,6 +303,20 @@ roundToET24Accidental acc =
 
 hasArrow :: Accidental -> Bool
 hasArrow acc = isJust (_accArrow acc)
+
+arrowUp :: Accidental -> Accidental
+arrowUp = arrow ?~ Up
+
+arrowDown :: Accidental -> Accidental
+arrowDown = arrow ?~ Down
+
+noArrow :: Accidental -> Accidental
+noArrow = arrow .~ Nothing
+
+{-
+ sharp # arrowUp
+Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Just Up, _accSemitones = 1 % 1}
+-}
 
 accidentalNameToAbbreviation :: [(AccidentalName, String)]
 accidentalNameToAbbreviation = [(_accName accidental, _accAbbreviation accidental) | accidental <- accidentals]
