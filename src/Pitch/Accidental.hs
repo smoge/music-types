@@ -28,6 +28,8 @@ module Accidental
     thirdFlatten,
     sixthSharpen,
     sixthFlatten,
+    sharpen,
+    flatten,
     sharp,
     flat,
     natural,
@@ -252,6 +254,12 @@ semitone = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemi
 --     getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
 ----
+
+sharpen :: Accidental -> Accidental
+sharpen = over semitone (+ (1 % 1))
+
+flatten :: Accidental -> Accidental
+flatten = over semitone (subtract (1 % 1))
 
 quarterSharpen :: Accidental -> Accidental
 quarterSharpen = over semitone (+ (1 % 2))
