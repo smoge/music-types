@@ -9,7 +9,7 @@ import Data.Ratio ((%))
 
 data Arrow = Up | Down deriving (Show, Eq)
 
-data AccidentalName = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | DoubleFlat | DoubleSharp | CustomAccidental Rational
+data AccidentalName = Sharp | Flat | Natural | SemiSharp | SemiFlat | SesquiSharp | SesquiFlat | DoubleFlat | DoubleSharp | ThirdSharp | ThirdFlat | SixthSharp | SixthFlat | TwelfthSharp | TwelfthFlat | EigthSharp | EigthSFlat | CustomAccidental Rational
   deriving (Show, Eq)
 
 data Accidental = Accidental
@@ -30,7 +30,15 @@ accidentals =
     Accidental SesquiFlat "tqf" Nothing ((-3) % 2),
     Accidental SesquiSharp "tqs" Nothing (3 % 2),
     Accidental DoubleSharp "ss" Nothing (2 % 1),
-    Accidental DoubleFlat "ff" Nothing ((-2) % 1)
+    Accidental DoubleFlat "ff" Nothing ((-2) % 1),
+    Accidental ThirdSharp "ts" Nothing (2 % 3),
+    Accidental ThirdFlat "tf" Nothing ((-2) % 3),
+    Accidental SixthSharp "sis" Nothing (1 % 3),
+    Accidental SixthFlat "sif" Nothing ((-1) % 3),
+    Accidental TwelfthSharp "ts" Nothing (1 % 6),
+    Accidental TwelfthFlat "tf" Nothing ((-1) % 6),
+    Accidental EigthSharp "es" Nothing (1 % 4),
+    Accidental EigthSFlat "tf" Nothing ((-1) % 4)
   ]
 
 accidentalNameToAbbreviation :: [(AccidentalName, String)]
