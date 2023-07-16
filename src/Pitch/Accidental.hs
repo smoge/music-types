@@ -118,8 +118,8 @@ defaultAccidental =
       _accSemitones = 0 % 1
     }
 
-(#) :: a -> (a -> b) -> b
-(#) = flip ($)
+(@@) :: a -> (a -> b) -> b
+(@@) = flip ($)
 
 class Initializable a where
   initializeAccidental :: a -> Accidental
@@ -230,8 +230,8 @@ accidentals =
     Accidental FiveSixthsFlat "fxf" Nothing ((-5) % 3),
     Accidental ElevenTwelfthsSharp "ets" Nothing (11 % 6),
     Accidental ElevenTwelfthsFlat "etf" Nothing ((-11) % 6),
-    Accidental TwoThirdsSharp "trs" Nothing (1 % 3),
-    Accidental TwoThirdsFlat "trf" Nothing ((-1) % 3),
+    Accidental TwoThirdsFlat "trf" Nothing ((-4) % 3),
+    Accidental TwoThirdsSharp "trf" Nothing (4 % 3),
     Accidental ThreeEighthsSharp "tes" Nothing (3 % 4),
     Accidental ThreeEighthsFlat "tef" Nothing ((-3) % 4)
   ]
@@ -314,7 +314,7 @@ noArrow :: Accidental -> Accidental
 noArrow = arrow .~ Nothing
 
 {-
- sharp # arrowUp
+ sharp @@ arrowUp
 Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Just Up, _accSemitones = 1 % 1}
 -}
 
