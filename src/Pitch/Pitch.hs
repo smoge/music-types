@@ -3,16 +3,19 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Pitch.Pitch
-    (
-        NoteName
-    )
+  ( NoteName,
+    Pitch (..),
+    HasPitch (..),
+    (=~),
+  )
 where
 
 import Control.Lens
+import Data.Fixed (mod')
 import Data.Maybe (fromMaybe)
 import Data.Ratio ((%))
-import Data.Fixed (mod')
 import Pitch.Accidental
+import Control.Monad (guard)
 
 
 data NoteName = C | D | E | F | G | A | B deriving (Eq, Show)
@@ -25,10 +28,8 @@ data PitchClass = PitchClass
 
 makeLenses ''PitchClass
 
-
 createPitchClass :: NoteName -> Accidental -> PitchClass
 createPitchClass name acc = PitchClass {_noteName = name, _accidental = acc}
-
 
 newtype PitchVal = PitchVal Rational
   deriving (Eq, Show, Num)
@@ -44,14 +45,12 @@ noteNameToRational =
     (B, 11 % 1)
   ]
 
-
 pitchClassVal :: PitchClass -> Rational
 pitchClassVal pitchClass = base + ac
   where
-    base = fromMaybe (0%1) $ lookup nn noteNameToRational
+    base = fromMaybe (0 % 1) $ lookup nn noteNameToRational
     nn = pitchClass ^. noteName
     ac = pitchClass ^. (accidental . semitone)
-
 
 newtype Octave = Octave Int
   deriving (Eq, Show, Num)
@@ -72,14 +71,37 @@ data Pitch = Pitch
 
 makeLenses ''Pitch
 
+class HasPitch a where
+  pitch :: a -> PitchVal
+
+instance HasPitch Pitch where
+  pitch = pitchVal
+
+(=~) :: (HasPitch a) => a -> a -> Bool
+a =~ b = pitch a == pitch b
+
+-- createPitch :: PitchClass -> Int -> Maybe Pitch
+-- createPitch pc oct = do
+--   guard (isValidPitchClass pc && isValidOctave oct)
+--   return $ Pitch pc (Octave oct)
+
 createPitch :: PitchClass -> Int -> Pitch
-createPitch pc oct = Pitch pc (Octave oct)
+createPitch pc oct
+  | isValidPitchClass pc && isValidOctave oct = Pitch pc (Octave oct)
+  | otherwise = error "Invalid pitch"
+
+
+isValidPitchClass :: PitchClass -> Bool
+isValidPitchClass pc = pc ^. noteName `elem` [C, D, E, F, G, A, B]
+
+isValidOctave :: Int -> Bool
+isValidOctave oct = oct >= -1 && oct <= 10
 
 octaveVal :: Octave -> Int
 octaveVal (Octave oct) = (oct - 4) * 12
 
-pitchVal :: Pitch -> Rational
-pitchVal pitch = pcVal + fromIntegral octVal
+pitchVal :: Pitch -> PitchVal
+pitchVal pitch = PitchVal (pcVal + fromIntegral octVal)
   where
     pcVal = pitchClassVal (pitch ^. pitchClass)
     octVal = octaveVal (pitch ^. octave)
@@ -90,6 +112,29 @@ createPitch' pc acc oct = createPitch (createPitchClass pc acc) oct
 
 
 
+-- changePitchSemitones :: Rational -> Pitch -> Pitch
+-- changePitchSemitones semis pitch =
+--   let pc = pitch ^. pitchClass
+--       oct = pitch ^. octave
+--       newPC = changePitchClassSemitones semis pc
+--       newOct = changeOctaveSemitones semis oct
+--    in createPitch (fromMaybe pc newPC) (fromMaybe oct newOct)
+
+-- changePitchClassSemitones :: Rational -> PitchClass -> Maybe PitchClass
+-- changePitchClassSemitones semis pc = do
+--   let currentSemitones = pc ^. accidental . semitone
+--       newSemitones = currentSemitones + semis
+--       acc = pc ^. accidental
+--       newAcc = acc & semitone .~ newSemitones
+--    in Just $ pc & accidental .~ newAcc
+
+-- changeOctaveSemitones :: Rational -> Octave -> Maybe Octave
+-- changeOctaveSemitones semis oct = do
+--   let currentOctave = oct
+--       newOctave = currentOctave + fromIntegral (truncate semis `div` 12)
+--    in createOctave newOctave
+
+--
 
 {-
 createPitch :: PitchClass -> Int -> Maybe Pitch
@@ -130,7 +175,7 @@ pitchVal fSharp5
 
 
 {- 
-
+pitch middleC
 
 c = createPitchClass C natural
 
@@ -138,10 +183,14 @@ fSharp = createPitchClass F sharp
 
 middleC = createPitch' C natural 4
 
-middleC ^.  semitones
+middleC ^.  semitone
 
 updatedPitchClass :: PitchClass
 updatedPitchClass = c & semitone .~ 4.5
+
+updatedPitchClass :: PitchClass
+updatedPitchClass = c & accidental . semitone .~ 4.5
+
 
 updatedPitch :: Pitch 
 updatedPitch = middleC @ semitone .~ 4.5
