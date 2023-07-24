@@ -25,7 +25,22 @@ ghci> toLogicalTies (5%16)
 ghci> toLogicalTies (11%16)
 [1 % 4,7 % 16]
 
-
+does not work for
  -}
 
- 
+ {- 
+
+io Int -> [Ratio Int]
+toLogicalTies x 
+    | isPowerOfTwo (numerator x) = [x]
+    | otherwise = 
+        let 
+            largestPower = largestPowerOfTwo (numerator x)
+            firstDuration = largestPower % (2 * denominator x)
+            secondDuration = x - firstDuration
+        in 
+            if --------------------
+                then [firstDuration, secondDuration]
+                else toLogicalTies firstDuration ++ toLogicalTies secondDuration
+
+  -}
