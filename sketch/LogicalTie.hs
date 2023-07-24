@@ -19,3 +19,10 @@ toLogicalTies x
             secondDuration = x - firstDuration
         in 
             [firstDuration, secondDuration]
+
+{- 
+ghci> toLogicalTies (5%16)
+[1 % 8,3 % 16]
+ghci> toLogicalTies (11%16)
+[1 % 4,7 % 16]
+ -}
