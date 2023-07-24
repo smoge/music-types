@@ -5,7 +5,8 @@ isPowerOfTwo :: Int -> Bool
 isPowerOfTwo n = popCount n == 1
 
 largestPowerOfTwo :: Int -> Int
-largestPowerOfTwo n = 2 ^ (floor . logBase 2 . fromIntegral) n
+largestPowerOfTwo = (2 ^) . floor . logBase 2 . fromIntegral
+
 
 toLogicalTies :: Ratio Int -> [Ratio Int]
 toLogicalTies x 
@@ -23,4 +24,8 @@ ghci> toLogicalTies (5%16)
 [1 % 8,3 % 16]
 ghci> toLogicalTies (11%16)
 [1 % 4,7 % 16]
+
+
  -}
+
+ 
