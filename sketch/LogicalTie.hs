@@ -8,7 +8,7 @@ largestPowerOfTwo :: Int -> Int
 largestPowerOfTwo = (2 ^) . floor . logBase 2 . fromIntegral
 
 
-toLogicalTies :: Ratio Int -> [Ratio Int]
+toLogicalTies :: Rational -> [Rational]
 toLogicalTies x 
     | isPowerOfTwo (numerator x) = [x]
     | otherwise = 
