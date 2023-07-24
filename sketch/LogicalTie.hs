@@ -25,12 +25,13 @@ ghci> toLogicalTies (5%16)
 ghci> toLogicalTies (11%16)
 [1 % 4,7 % 16]
 
-does not work for
+does not work for 15+
  -}
 
  {- 
 
-io Int -> [Ratio Int]
+
+toLogicalTies :: Ratio Int -> [Ratio Int]
 toLogicalTies x 
     | isPowerOfTwo (numerator x) = [x]
     | otherwise = 
