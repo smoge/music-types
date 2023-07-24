@@ -42,6 +42,6 @@ toLogicalTies x
         in 
             if --------------------
                 then [firstDuration, secondDuration]
-                else toLogicalTies firstDuration ++ toLogicalTies secondDuration
+                else firstDuration : toLogicalTies secondDuration
 
   -}
