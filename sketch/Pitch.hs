@@ -3,12 +3,14 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import Control.Lens
-import Data.Fixed
+import Control.Lens 
+
+import Data.Fixed ( mod' )
 import Data.Function (on)
 import Data.List (minimumBy)
-import Data.Ratio
+import Data.Ratio 
 import Data.Kind (Type)
+
 
 data NoteName = C | D | E | F | G | A | B deriving (Show, Eq, Enum, Bounded, Ord)
 data PitchSpace = PitchSpace {
@@ -27,29 +29,48 @@ data Accidental = Accidental {
     _shift :: Rational
 } deriving (Eq, Show)
 
+
 makeLenses ''PitchSpace
 makeLenses ''Note
 makeLenses ''Accidental
 makeFields ''PitchSpace  -- generates lenses for nested fields 
 
 -- update the Note based on the modified pitch
+-- updateNote :: PitchSpace -> PitchSpace
+-- updateNote ps = ps & note .~ Note thisNoteName acc where
+--     (thisNoteName, acc) = getClosestNoteAndAccidental (ps ^. pitch)
+
+
 updateNote :: PitchSpace -> PitchSpace
-updateNote ps = ps & note .~ Note noteName acc where
-    (noteName, acc) = getClosestNoteAndAccidental (ps ^. pitch)
+updateNote ps =
+  let newPitch = ps ^. pitch
+      (noteName', acc) = getClosestNoteAndAccidental newPitch
+  in ps & pitch .~ newPitch & (note . noteName) .~ noteName' & note . accidental .~ acc
+
 
 class AffineSpace p where
-  type Diff p :: Type
+  type Diff p :: Data.Kind.Type
   (.+^) :: p -> Diff p -> p
   (.-.) :: p -> p -> Diff p
 
 class Num a => VectorSpace a where
-  type Scalar a :: Type
+  type Scalar a :: Data.Kind.Type
   (*^) :: Scalar a -> a -> a
 
 rationalModulo12 :: Rational -> Rational
 rationalModulo12 r = r `mod'` 12
 
-newtype Interval = Interval Rational deriving (Show, Eq, Num)
+newtype Interval = Interval Rational deriving (Show, Eq)
+
+instance Num Interval where
+  Interval a + Interval b = Interval (a + b)
+  Interval a - Interval b = Interval (a - b)
+  Interval a * Interval b = Interval (a * b)
+  negate (Interval a) = Interval (negate a)
+  abs (Interval a) = Interval (abs a)
+  signum (Interval a) = Interval (signum a)
+  fromInteger n = Interval (fromInteger n)
+
 
 instance VectorSpace Interval where
   type Scalar Interval = Rational
@@ -61,9 +82,9 @@ instance AffineSpace PitchSpace where
 
   p@(PitchSpace r note octave) .+^ (Interval i) =
     let r' = r + i
-        (noteName, accidental) = getClosestNoteAndAccidental r'
+        (thisNoteName, thisAccidental) = getClosestNoteAndAccidental r'
         octave' = rationalToOctave r'
-    in PitchSpace r' (Note noteName accidental) octave'
+    in PitchSpace r' (Note thisNoteName thisAccidental) octave'
     
   (PitchSpace r1 _ _) .-. (PitchSpace r2 _ _) = Interval (r1 - r2)
 
@@ -124,8 +145,8 @@ accidentals =
 
 findClosestAccidental :: Rational -> Accidental
 findClosestAccidental r =
-  let (name, shift) = minimumBy (compare `on` (abs . (r -) . snd)) accidentals
-  in Accidental name shift
+  let (name, thisShift) = minimumBy (compare `on` (abs . (r -) . snd)) accidentals
+  in Accidental name thisShift
 
 findClosestNote :: Rational -> Rational
 findClosestNote r =
@@ -148,10 +169,21 @@ getClosestNoteAndAccidental r =
 rationalToPitchSpace :: Rational -> PitchSpace
 rationalToPitchSpace r =
   let (closestNote, closestAccidental) = getClosestNoteAndAccidental r
-      octave = rationalToOctave r
-   in PitchSpace r (Note closestNote closestAccidental) octave
+      thisOctave = rationalToOctave r
+   in PitchSpace r (Note closestNote closestAccidental) thisOctave
 
 
+-- adjustedPitchSpace :: Rational -> PitchSpace -> PitchSpace
+-- adjustedPitchSpace threshold ps =
+--     ps & pitch %~ (\p -> if p > threshold then p - 1 else p)  -- If pitch > threshold, subtract 1 from the pitch
+
+
+-- adjustedPitchSpace :: Rational -> PitchSpace -> PitchSpace
+-- adjustedPitchSpace threshold ps =
+--     let newPitch = ps ^. pitch
+--         (noteName, acc) = getClosestNoteAndAccidental newPitch
+--     in ps & pitch %~ (\p -> if p > threshold then p - 1 else p)
+--           & note %~ (\n -> n & noteName .~ noteName & accidental .~ acc)
 
 
 
@@ -196,6 +228,10 @@ p1 = rationalToPitchSpace (1 % 1)
 
 p2 :: PitchSpace
 p2 = rationalToPitchSpace (5.5)
+
+scaledP2 = updateNote $ p2 & pitch %~ (* (2 % 1))
+-- PitchSpace {_pitch = 11 % 1, _note = Note {_noteName = B, _accidental = Accidental {_accidentalName = "", _shift = 0 % 1}}, _octave = 0}
+
 
 -- Accessing fields using lenses
 p1Pitch :: Rational
@@ -263,3 +299,60 @@ ghci> modifiedP4
 PitchSpace {_pitch = 41 % 2, _note = Note {_noteName = A, _accidental = Accidental {_accidentalName = "qf", _shift = (-1) % 2}}, _octave = 0}
 ghci> 
    -}
+
+
+{- 
+
+
+p1 :: PitchSpace
+p1 = rationalToPitchSpace (1 % 1)  -- C natural, octave 0
+
+p2 :: PitchSpace
+p2 = rationalToPitchSpace (5 % 2)  -- F sharp, octave 0
+
+p3 :: PitchSpace
+p3 = rationalToPitchSpace (13 % 4) -- B flat, octave 1
+
+import Data.Ratio ((%))
+import Control.Lens 
+
+-- Vector addition: Move p1 by an interval of 2 semitones (whole tone)
+movedP1 :: PitchSpace
+movedP1 = p1 & pitch %~ (+ (2 % 1))
+
+import Control.Lens ((^.))
+-- Vector subtraction: Find the interval between p1 and p2
+intervalP1P2 :: Interval
+intervalP1P2 = p1 ^. pitch .-. p2 ^. pitch
+
+
+intervalP1P2 = p1 ^. _pitch .-. p2 ^. _pitch
+
+-- Vector scaling: Double the pitch of p2
+scaledP2 :: PitchSpace
+scaledP2 = p2 & pitch %~ (* (2 % 1))
+
+-- Combined operations: Move p2 by an interval of -3 semitones (minor third) and scale it by 2
+modifiedP2 :: PitchSpace
+modifiedP2 = p2 & pitch %~ (+ (-3 % 1)) . pitch %~ (* (2 % 1))
+
+-- Vector addition with the result of a subtraction: Move p1 by the interval between p2 and p3
+movedP1ByIntervalP2P3 :: PitchSpace
+movedP1ByIntervalP2P3 = p1 & pitch %~ (+ (intervalP1P2 ^. _Wrapped))
+
+
+ -}
+
+   {- 
+   
+   TODO:
+   
+   
+isET12 :: Bool
+isET12 = p1 ^. note . accidental . to isET12Accidental
+
+
+ -}
+
+
+
