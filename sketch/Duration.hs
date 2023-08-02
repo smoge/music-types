@@ -14,7 +14,7 @@ type Dots = Int
 type Rq = Rational
 
 data Duration where
-  Duration :: {_division :: Division,
+  Duration :: {  _division :: Division,
                  _dots :: Dots,
                  _multiplier :: Rational}
                 -> Duration
@@ -23,6 +23,31 @@ data Duration where
 
 makeLenses ''Duration
 
+
+dotMultiplier :: Dots -> Rational
+dotMultiplier dotCount = n % d
+  where
+    n = 2 ^ (dotCount + 1) - 1
+    d = 2 ^ dotCount
+
+
+durationToRq :: Duration -> Rq
+durationToRq d = (1 % (d ^. division)) * dotMultiplier (d ^. dots) * (d ^. multiplier)
+
+{- 
+
+d1 = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
+d2 = Duration {_division = 8, _dots = 0, _multiplier = 1}
+d3 = Duration {_division = 8, _dots = 0, _multiplier = 4/5}
+d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
+d5 = Duration {_division = 8, _dots = 2, _multiplier = 1}
+
+durationToRq d3
+
+durationToRq d4
+durationToRq d5
+
+ -}
 
 -- Function to compare the multipliers of two durations
 areMultipliersEqual :: Duration -> Duration -> Bool
@@ -63,20 +88,16 @@ sumDivisions :: [Duration] -> Division
 sumDivisions = sumOf (folded . division)  -- Calculate the sum of divisions in a list of durations
 
 
--- Calculate the Rq value of a Duration
-durationToRq :: Duration -> Rq
-durationToRq (Duration thisDivisi thisDots thisMultiplier) =
-    fromIntegral thisDivisi / (thisMultiplier * (2 ^ thisDots))
-
 
 
 -- test
 {- 
 d :: Duration
-d = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
-
+d1 = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
 d2 = Duration {_division = 8, _dots = 0, _multiplier = 1}
 d3 = Duration {_division = 8, _dots = 0, _multiplier = 4/5}
+d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
+d5 = Duration {_division = 8, _dots = 2, _multiplier = 1}
 
 -- todo
 rqToClosestDuration $ durationToRq d2
