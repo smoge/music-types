@@ -1,0 +1,48 @@
+name: music-types
+version: '0.1.0.0'
+description: Please see the README on GitHub at <https://github.com/githubuser/music-types#readme>
+author: Bernardo Barros
+maintainer: example@example.com
+copyright: 2023 Author name here
+license: BSD3
+github: githubuser/music-types
+extra-source-files:
+- README.md
+- CHANGELOG.md
+- sketch/Parsers/*
+- sketch/*
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+dependencies:
+- base
+- parsec
+- pretty-show
+- lens
+- regex-tdfa
+library:
+  source-dirs: src
+  exposed-modules:
+  - Rtm
+  - Time
+  - Barlow
+  - Math.Primes
+  - Pitch.Pitch
+  - Pitch.Accidental
+executables:
+  music-types-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - music-types
