@@ -106,7 +106,7 @@ durationToRq d5
 
  -}
 
---! test
+
 {-
 d :: Duration
 d1 = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
@@ -127,7 +127,4 @@ ghci > d1 = Duration 4 3 1
 ghci> d1
 Duration {division = 4, dots = 1, multiplier = 1 % 1}
 ghci> durationToLilypondType d1
-"4."
- -}i> durationToLilypondType d1
-"4."
- -}
+-}
