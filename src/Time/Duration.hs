@@ -83,7 +83,7 @@ rqToDuration'' rq
   | otherwise =
       let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
           dots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-          multipliers = [1, 2 / 3, 4 / 5]
+          multipliers = [1, 2 / 3, 4 / 5, 3/5, 2/5, 5/6, 6/7, 5/7, 4/7, 3/7, 2/7]
           validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers]
           matchingDurations = filter (\d -> durationToRq d == rq) validDurations
        in matchingDurations
@@ -130,9 +130,9 @@ accessDivision = view division
 
 instance Arbitrary Duration where
   arbitrary = do
-    div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-    dt <- choose (0, 2)
-    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5]
+    div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    dt <- choose (0, 3)
+    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3/5, 5/6]
     return Duration {_division = div, _dots = dt, _multiplier = mult}
 
 prop_rqToDuration' :: Duration -> Bool
