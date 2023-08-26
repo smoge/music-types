@@ -2,7 +2,19 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Redundant bracket" #-}
 
-module Time.Duration where
+module Time.Duration
+  ( Duration (..),
+    Rq,
+    Division,
+    Dots,
+    durationToRq,
+    rqToDuration,
+    divisions, 
+    dotsList, 
+    multipliers, 
+  )
+where
+
 
 import Control.Lens
 import Data.Ord (comparing)
@@ -12,6 +24,7 @@ import Test.QuickCheck
 type Division = Integer
 type Dots = Int
 type Rq = Rational
+
 
 data Duration = Duration
   { _division :: Division
@@ -28,7 +41,7 @@ class HasDuration a where
   _rq a = durationToRq (_duration a)
 
 dotMultiplier :: Dots -> Rational
-dotMultiplier dotCount = n Data.Ratio.% d
+dotMultiplier dotCount = n % d
   where
     n = 2 ^ (dotCount + 1) - 1
     d = 2 ^ dotCount
@@ -36,10 +49,19 @@ dotMultiplier dotCount = n Data.Ratio.% d
 durationToRq :: Duration -> Rational
 durationToRq d = a * b * c
   where
-    a = 1 Data.Ratio.% (view division d) :: Rational
+    a = 1 % (view division d) :: Rational
     b = dotMultiplier (view dots d) :: Rational
     c = view multiplier d :: Rational
 
+
+divisions :: [Division]
+divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+
+multipliers :: [Rational]
+multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
+
+dotsList :: [Dots]
+dotsList = [0 .. 12]
       
 
 compareDurations :: Duration -> Duration -> Ordering
@@ -51,27 +73,6 @@ instance Ord Duration where
 isMultiplierIdentity :: Duration -> Bool
 isMultiplierIdentity = (1 ==) . view multiplier
 
--- rqToDuration :: Rq -> [Duration]
--- rqToDuration rq
---   | rq <= 0 = []
---   | otherwise =
---       let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
---           dots = [0..12]
---           multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
---           validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers]
---           matchingDurations = filter (\d -> durationToRq d == rq) validDurations
---        in matchingDurations
-
-
--- rqToDuration :: Rq -> [Duration]
--- rqToDuration rq
---   | rq <= 0 = []
---   | otherwise =
---       let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
---           dots = [0 .. 12]
---           multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
---           validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers, durationToRq (Duration d dt m) == rq]
---        in validDurations
 
 rqToDuration :: Rq -> [Duration]
 rqToDuration rq
@@ -103,7 +104,7 @@ accessDivision = view division
 instance Arbitrary Duration where
   arbitrary = do
     div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-    dt <- choose (0, 10)
+    dt <- choose (0, 12)
     mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
     return Duration {_division = div, _dots = dt, _multiplier = mult}
 
@@ -113,8 +114,9 @@ prop_rqToDuration d =
       durations = rqToDuration rq
    in d `elem` durations
 
+
 runTests :: IO ()
-runTests = verboseCheck prop_rqToDuration
+runTests = quickCheckWith (stdArgs {maxSuccess = 100}) prop_rqToDuration
 
 ---------------------------------------------------------------------------- !!
 -- ~ End QuickCheck 
