@@ -1,8 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE InstanceSigs      #-}
+{-# LANGUAGE OverloadedLists   #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
-module Accidental
+module Pitch.Accidental
   ( Accidental (..),
     Arrow (..),
     AccidentalName (..),
@@ -61,7 +63,8 @@ import Control.Lens
 import Data.List (maximumBy, minimumBy, sortOn)
 import Data.Maybe (fromMaybe, isJust)
 import Data.Ord (comparing)
-import Data.Ratio ((%))
+import Data.Ratio 
+import Test.QuickCheck 
 
 data Arrow = Up | Down deriving (Show, Eq)
 
@@ -118,13 +121,14 @@ defaultAccidental =
       _accSemitones = 0 % 1
     }
 
-(@@) :: a -> (a -> b) -> b
-(@@) = flip ($)
+-- (@@) :: a -> (a -> b) -> b
+-- (@@) = flip ($)
 
 class Initializable a where
   initializeAccidental :: a -> Accidental
 
 instance Initializable AccidentalName where
+  initializeAccidental :: AccidentalName -> Accidental
   initializeAccidental accidentalName =
     Accidental
       { _accName = accidentalName,
@@ -133,108 +137,102 @@ instance Initializable AccidentalName where
         _accArrow = Nothing
       }
 
-newtype AccidentalString = AccidentalString String
-
-instance Initializable AccidentalString where
-  initializeAccidental (AccidentalString a) =
+instance Initializable String where
+  initializeAccidental :: String -> Accidental
+  initializeAccidental a =
     let n = fromMaybe (CustomAccidental 0) $ lookup a accidentalAbbreviationToName
         s = fromMaybe 0 $ lookup a accidentalAbbreviationToSemitones
      in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
 
-newtype AccidentalRational = AccidentalRational Rational
-
-instance Initializable AccidentalRational where
-  initializeAccidental (AccidentalRational s) =
+instance Initializable Rational where
+  initializeAccidental :: Rational -> Accidental
+  initializeAccidental s =
     let n = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
         a = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
      in Accidental {_accName = n, _accAbbreviation = a, _accSemitones = s, _accArrow = Nothing}
 
 instance Num Accidental where
+  (+) :: Accidental -> Accidental -> Accidental
   (+) a1 a2 =
     let newSemitones = _accSemitones a1 + _accSemitones a2
-     in initializeAccidental (AccidentalRational newSemitones)
+     in initializeAccidental newSemitones
 
+  (-) :: Accidental -> Accidental -> Accidental
   (-) a1 a2 =
     let newSemitones = _accSemitones a1 - _accSemitones a2
-     in initializeAccidental (AccidentalRational newSemitones)
+     in initializeAccidental newSemitones
 
+  (*) :: Accidental -> Accidental -> Accidental
   (*) a1 a2 =
     let newSemitones = _accSemitones a1 * _accSemitones a2
-     in initializeAccidental (AccidentalRational newSemitones)
+     in initializeAccidental newSemitones
 
+  abs :: Accidental -> Accidental
   abs a =
     let absSemitones = abs (_accSemitones a)
-     in initializeAccidental (AccidentalRational absSemitones)
-
-  signum a =
-    case compare (_accSemitones a) 0 of
-      LT -> initializeAccidental (AccidentalRational (-1)) -- 'flat'
-      EQ -> initializeAccidental (AccidentalRational 0) -- 'natural'
-      GT -> initializeAccidental (AccidentalRational 1) -- 'sharp'
-
-  fromInteger i = initializeAccidental (AccidentalRational $ fromInteger i)
-
-{-
-ghci> signum flat == flat
-True
-
-ghci > accidental = fromInteger 1 :: Accidental
-
-ghci > accidental
-Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
--}
+     in initializeAccidental absSemitones
 
 instance Fractional Accidental where
-  fromRational r = initializeAccidental (AccidentalRational r)
+  fromRational :: Rational -> Accidental
+  fromRational = initializeAccidental
 
-  (/) a1 a2 =
-    let newSemitones = _accSemitones a1 / _accSemitones a2
-     in initializeAccidental (AccidentalRational newSemitones)
+  (/) :: Accidental -> Accidental -> Accidental
+  (/) a1 a2 = initializeAccidental $ _accSemitones a1 / _accSemitones a2
 
-{-
-ghci > acc = fromRational (1.5 :: Rational) :: Accidental
+data AccidentalData = AccidentalData
+  { abbrev :: String,
+    semitones :: Rational
+  }
+  deriving (Show, Eq)
 
-ghci > acc
-Accidental {_accName = ThreeQuartersSharp, _accAbbreviation = "tqs", _accArrow = Nothing, _accSemitones = 3 % 2}
+getAccidentalData :: AccidentalName -> Maybe AccidentalData
+getAccidentalData name = lookup name accidentalMapping
 
-ghci > acc2 = -0.5 :: Accidental
+semitoneToNameMapping :: [(Rational, AccidentalName)]
+semitoneToNameMapping = [(semitones d, n) | (n, d) <- accidentalMapping]
 
-ghci > acc + acc2
-Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}
--}
+normalizeAccidental :: Rational -> Maybe AccidentalName
+normalizeAccidental r = lookup r semitoneToNameMapping
 
-accidentals :: [Accidental]
-accidentals =
-  [ Accidental Flat "f" Nothing ((-1) % 1),
-    Accidental Natural "" Nothing (0 % 1),
-    Accidental Sharp "s" Nothing (1 % 1),
-    Accidental QuarterFlat "qf" Nothing ((-1) % 2),
-    Accidental QuarterSharp "qs" Nothing (1 % 2),
-    Accidental ThreeQuartersFlat "tqf" Nothing ((-3) % 2),
-    Accidental ThreeQuartersSharp "tqs" Nothing (3 % 2),
-    Accidental DoubleSharp "ss" Nothing (2 % 1),
-    Accidental DoubleFlat "ff" Nothing ((-2) % 1),
-    Accidental ThirdSharp "rs" Nothing (2 % 3),
-    Accidental ThirdFlat "rf" Nothing ((-2) % 3),
-    Accidental SixthSharp "xs" Nothing (1 % 3),
-    Accidental SixthFlat "xf" Nothing ((-1) % 3),
-    Accidental TwelfthSharp "ts" Nothing (1 % 6),
-    Accidental TwelfthFlat "tf" Nothing ((-1) % 6),
-    Accidental EighthSharp "es" Nothing (1 % 4),
-    Accidental EighthFlat "ef" Nothing ((-1) % 4),
-    Accidental FiveTwelfthsSharp "fts" Nothing (5 % 6),
-    Accidental FiveTwelfthsFlat "ftf" Nothing ((-5) % 6),
-    Accidental SevenTwelfthsSharp "sts" Nothing (7 % 6),
-    Accidental SevenTwelfthsFlat "stf" Nothing ((-7) % 6),
-    Accidental FiveSixthsSharp "fxs" Nothing (5 % 3),
-    Accidental FiveSixthsFlat "fxf" Nothing ((-5) % 3),
-    Accidental ElevenTwelfthsSharp "ets" Nothing (11 % 6),
-    Accidental ElevenTwelfthsFlat "etf" Nothing ((-11) % 6),
-    Accidental TwoThirdsFlat "trf" Nothing ((-4) % 3),
-    Accidental TwoThirdsSharp "trf" Nothing (4 % 3),
-    Accidental ThreeEighthsSharp "tes" Nothing (3 % 4),
-    Accidental ThreeEighthsFlat "tef" Nothing ((-3) % 4)
+accidentalMapping :: [(AccidentalName, AccidentalData)]
+accidentalMapping =
+  [ (Flat, AccidentalData "f" ((-1) % 1)),
+    (Natural, AccidentalData "" (0 % 1)),
+    (Sharp, AccidentalData "s" (1 % 1)),
+    (QuarterFlat, AccidentalData "qf" ((-1) % 2)),
+    (QuarterSharp, AccidentalData "qs" (1 % 2)),
+    (ThreeQuartersFlat, AccidentalData "tqf" ((-3) % 2)),
+    (ThreeQuartersSharp, AccidentalData "tqs" (3 % 2)),
+    (DoubleSharp, AccidentalData "ss" (2 % 1)),
+    (DoubleFlat, AccidentalData "ff" ((-2) % 1)),
+    (ThirdSharp, AccidentalData "rs" (2 % 3)),
+    (ThirdFlat, AccidentalData "rf" ((-2) % 3)),
+    (SixthSharp, AccidentalData "xs" (1 % 3)),
+    (SixthFlat, AccidentalData "xf" ((-1) % 3)),
+    (TwelfthSharp, AccidentalData "ts" (1 % 6)),
+    (TwelfthFlat, AccidentalData "tf" ((-1) % 6)),
+    (EighthSharp, AccidentalData "es" (1 % 4)),
+    (EighthFlat, AccidentalData "ef" ((-1) % 4)),
+    (FiveTwelfthsSharp, AccidentalData "fts" (5 % 6)),
+    (FiveTwelfthsFlat, AccidentalData "ftf" ((-5) % 6)),
+    (SevenTwelfthsSharp, AccidentalData "sts" (7 % 6)),
+    (SevenTwelfthsFlat, AccidentalData "stf" ((-7) % 6)),
+    (FiveSixthsSharp, AccidentalData "fxs" (5 % 3)),
+    (FiveSixthsFlat, AccidentalData "fxf" ((-5) % 3)),
+    (ElevenTwelfthsSharp, AccidentalData "ets" (11 % 6)),
+    (ElevenTwelfthsFlat, AccidentalData "etf" ((-11) % 6)),
+    (TwoThirdsSharp, AccidentalData "tts" (2 % 3)),
+    (TwoThirdsFlat, AccidentalData "ttf" ((-2) % 3)),
+    (ThreeEighthsSharp, AccidentalData "tes" (3 % 4)),
+    (ThreeEighthsFlat, AccidentalData "tef" ((-3) % 4))
   ]
+
+-- Generate the list of Accidental from accidentalMapping
+accidentals :: [Accidental]
+accidentals = 
+  [Accidental n (abbrev d) Nothing (semitones d) | (n, d) <- accidentalMapping]
+
+
 
 orderedAccidentals :: [Accidental]
 orderedAccidentals = sortOn _accSemitones accidentals
@@ -270,21 +268,6 @@ roundToNearestAccidental :: Rational -> Accidental
 roundToNearestAccidental num =
   minimumBy (comparing (abs . subtract num . _accSemitones)) accidentals
 
-{-
-roundToNearestAccidental (11 % 15)
-Accidental {_accName = ThreeEighthsSharp, _accAbbreviation = "tes", _accArrow = Nothing, _accSemitones = 3 % 4}
-
-roundToNearestAccidental (2 % 7)
-Accidental {_accName = EighthSharp, _accAbbreviation = "es", _accArrow = Nothing, _accSemitones = 1 % 4}
-
-roundToNearestAccidental (13 % 21)
-Accidental {_accName = ThirdSharp, _accAbbreviation = "rs", _accArrow = Nothing, _accSemitones = 2 % 3}
-
-roundToNearestAccidental (0.83274 :: Rational)
-Accidental {_accName = FiveTwelfthsSharp, _accAbbreviation = "fts", _accArrow = Nothing, _accSemitones = 5 % 6}
-
--}
-
 roundToET12Accidental :: Accidental -> Accidental
 roundToET12Accidental acc =
   let floorAccidental = maximumBy (comparing _accSemitones) $ filter (<= acc) et12Accidentals
@@ -313,11 +296,6 @@ arrowDown = arrow ?~ Down
 noArrow :: Accidental -> Accidental
 noArrow = arrow .~ Nothing
 
-{-
- sharp @@ arrowUp
-Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Just Up, _accSemitones = 1 % 1}
--}
-
 accidentalNameToAbbreviation :: [(AccidentalName, String)]
 accidentalNameToAbbreviation = [(_accName accidental, _accAbbreviation accidental) | accidental <- accidentals]
 
@@ -338,18 +316,22 @@ accidentalSemitonesToAbbreviation = invertMapping accidentalAbbreviationToSemito
 
 accidentalSemitonesToName :: [(Rational, AccidentalName)]
 accidentalSemitonesToName = invertMapping accidentalNameToSemitones
-
+-- Begin Code Snippet --
 name :: Lens' Accidental AccidentalName
-name = lens _accName (\acc newName -> acc {_accName = newName, _accSemitones = getSemitones newName, _accAbbreviation = getAbbreviation (_accSemitones acc)})
+name = lens _accName updateAccidentalFields
   where
+    updateAccidentalFields acc newName = acc {_accName = newName, _accSemitones = getSemitones newName, _accAbbreviation = getAbbreviation (_accSemitones acc)}
+
     getSemitones n = fromMaybe (error "Invalid name value") $ lookup n accidentalNameToSemitones
 
     getAbbreviation :: Rational -> String
     getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
 abbreviation :: Lens' Accidental String
-abbreviation = lens _accAbbreviation (\acc newAbbreviation -> acc {_accAbbreviation = newAbbreviation, _accName = getName newAbbreviation, _accSemitones = getSemitones (_accName acc)})
+abbreviation = lens _accAbbreviation updateAccidentalFields
   where
+    updateAccidentalFields acc newAbbreviation = acc {_accAbbreviation = newAbbreviation, _accName = getName newAbbreviation, _accSemitones = getSemitones (_accName acc)}
+
     getName :: String -> AccidentalName
     getName a = fromMaybe (CustomAccidental 0) $ lookup a accidentalAbbreviationToName
 
@@ -373,13 +355,16 @@ instance Semigroup Accidental where
       getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
 
 semitone :: Lens' Accidental Rational
-semitone = lens _accSemitones (\acc newSemitones -> acc {_accSemitones = newSemitones, _accName = getName newSemitones, _accAbbreviation = getAbbreviation newSemitones})
+semitone = lens _accSemitones updateAccidentalFields
   where
+    updateAccidentalFields acc newSemitones = acc {_accSemitones = newSemitones, _accName = getName newSemitones, _accAbbreviation = getAbbreviation newSemitones}
+
     getName :: Rational -> AccidentalName
     getName s = fromMaybe (CustomAccidental s) $ lookup s accidentalSemitonesToName
 
     getAbbreviation :: Rational -> String
     getAbbreviation s = fromMaybe "" $ lookup s accidentalSemitonesToAbbreviation
+-- End Code Snippet --
 
 -- Simple Modifiers
 
@@ -519,10 +504,10 @@ ghci> semiFlat ^. semitone + 0.5
 ghci> doubleFlat & arrow ?~ Up
 Accidental {_accName = DoubleFlat, _accAbbreviation = "ff", _accArrow = Just Up, _accSemitones = (-2) %
 
-ghci > semiSharp & semitone -~ (1 % 4)
-Accidental {_accName = CustomAccidental (1 % 4), _accAbbreviation = "", _accArrow = Nothing, _accSemitones = 1 % 4}
+>>> semiSharp & semitone -~ (1 % 4)
+Accidental {_accName = EighthSharp, _accAbbreviation = "es", _accArrow = Nothing, _accSemitones = 1 % 4}
 
-ghci > flat & semitone +~ (1 % 3)
+>>> flat & semitone +~ (1 % 3)
 Accidental {_accName = ThirdFlat, _accAbbreviation = "rf", _accArrow = Nothing, _accSemitones = (-2) % 3}
 
 ghci > flat + flat & semitone +~ (1 % 3)
@@ -562,3 +547,101 @@ Just (Accidental {_accName = QuarterSharp, _accAbbreviation = "qs", _accArrow = 
 -- rounded2 = roundToET24Accidental accidental1
 
 -- Accidental {_accName = ThreeQuartersSharp, _accAbbreviation = "tqs", _accArrow = Nothing, _accSemitones = 3 % 2}
+
+
+
+
+-- accidentals :: [Accidental]
+-- accidentals =
+--   [ Accidental Flat "f" Nothing ((-1) % 1),
+--     Accidental Natural "" Nothing (0 % 1),
+--     Accidental Sharp "s" Nothing (1 % 1),
+--     Accidental QuarterFlat "qf" Nothing ((-1) % 2),
+--     Accidental QuarterSharp "qs" Nothing (1 % 2),
+--     Accidental ThreeQuartersFlat "tqf" Nothing ((-3) % 2),
+--     Accidental ThreeQuartersSharp "tqs" Nothing (3 % 2),
+--     Accidental DoubleSharp "ss" Nothing (2 % 1),
+--     Accidental DoubleFlat "ff" Nothing ((-2) % 1),
+--     Accidental ThirdSharp "rs" Nothing (2 % 3),
+--     Accidental ThirdFlat "rf" Nothing ((-2) % 3),
+--     Accidental SixthSharp "xs" Nothing (1 % 3),
+--     Accidental SixthFlat "xf" Nothing ((-1) % 3),
+--     Accidental TwelfthSharp "ts" Nothing (1 % 6),
+--     Accidental TwelfthFlat "tf" Nothing ((-1) % 6),
+--     Accidental EighthSharp "es" Nothing (1 % 4),
+--     Accidental EighthFlat "ef" Nothing ((-1) % 4),
+--     Accidental FiveTwelfthsSharp "fts" Nothing (5 % 6),
+--     Accidental FiveTwelfthsFlat "ftf" Nothing ((-5) % 6),
+--     Accidental SevenTwelfthsSharp "sts" Nothing (7 % 6),
+--     Accidental SevenTwelfthsFlat "stf" Nothing ((-7) % 6),
+--     Accidental FiveSixthsSharp "fxs" Nothing (5 % 3),
+--     Accidental FiveSixthsFlat "fxf" Nothing ((-5) % 3),
+--     Accidental ElevenTwelfthsSharp "ets" Nothing (11 % 6),
+--     Accidental ElevenTwelfthsFlat "etf" Nothing ((-11) % 6),
+--     Accidental TwoThirdsFlat "trf" Nothing ((-4) % 3),
+--     Accidental TwoThirdsSharp "trf" Nothing (4 % 3),
+--     Accidental ThreeEighthsSharp "tes" Nothing (3 % 4),
+--     Accidental ThreeEighthsFlat "tef" Nothing ((-3) % 4)
+--   ]
+
+
+
+
+-- Property to ensure that the addition of two accidentals results in an Accidental
+-- with a sum of the two semitones:
+prop_additionCorrectness :: Accidental -> Accidental -> Bool
+prop_additionCorrectness a1 a2 = _accSemitones (a1 + a2) == _accSemitones a1 + _accSemitones a2
+
+-- Property to ensure the subtraction of two accidentals results in an Accidental
+-- with the difference of the two semitones:
+prop_subtractionCorrectness :: Accidental -> Accidental -> Bool
+prop_subtractionCorrectness a1 a2 = _accSemitones (a1 - a2) == _accSemitones a1 - _accSemitones a2
+
+-- Property to ensure the multiplication of two accidentals results in an Accidental
+-- with a product of the two semitones:
+prop_multiplicationCorrectness :: Accidental -> Accidental -> Bool
+prop_multiplicationCorrectness a1 a2 = _accSemitones (a1 * a2) == _accSemitones a1 * _accSemitones a2
+
+-- Property to ensure the division of two accidentals results in an Accidental
+-- with a quotient of the two semitones, provided second Accidental is not zero:
+prop_divisionCorrectness :: Accidental -> Accidental -> Property
+prop_divisionCorrectness a1 a2 = (_accSemitones a2 /= 0) ==> _accSemitones (a1 / a2) == _accSemitones a1 / _accSemitones a2
+
+-- A generator to create random Accidental
+instance Arbitrary Accidental where
+  arbitrary = Test.QuickCheck.elements accidentals
+
+
+
+main :: IO ()
+main = do
+  let args = stdArgs {maxSuccess = 1000}
+
+  putStrLn "Testing addition correctness:"
+  quickCheckWith args prop_additionCorrectness
+
+  putStrLn "Testing subtraction correctness:"
+  quickCheckWith args prop_subtractionCorrectness
+
+  putStrLn "Testing multiplication correctness:"
+  quickCheckWith args prop_multiplicationCorrectness
+
+  putStrLn "Testing division correctness:"
+  quickCheckWith args prop_divisionCorrectness
+  
+
+
+{-
+>>> roundToNearestAccidental (11 % 15)
+Accidental {_accName = ThreeEighthsSharp, _accAbbreviation = "tes", _accArrow = Nothing, _accSemitones = 3 % 4}
+
+>>> roundToNearestAccidental (2 % 7)
+Accidental {_accName = EighthSharp, _accAbbreviation = "es", _accArrow = Nothing, _accSemitones = 1 % 4}
+
+>>> roundToNearestAccidental (13 % 21)
+Accidental {_accName = ThirdSharp, _accAbbreviation = "rs", _accArrow = Nothing, _accSemitones = 2 % 3}
+
+>>> roundToNearestAccidental (0.83274 :: Rational)
+Accidental {_accName = FiveTwelfthsSharp, _accAbbreviation = "fts", _accArrow = Nothing, _accSemitones = 5 % 6}
+
+-}

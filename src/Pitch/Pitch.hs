@@ -1,21 +1,23 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Pitch.Pitch
   ( NoteName,
     Pitch (..),
     HasPitch (..),
     (=~),
+    Accidental,
+    AccidentalName
   )
 where
 
 import Control.Lens
-import Data.Fixed (mod')
+-- import Data.Fixed (mod')
 import Data.Maybe (fromMaybe)
 import Data.Ratio ((%))
 import Pitch.Accidental
-import Control.Monad (guard)
 
 
 data NoteName = C | D | E | F | G | A | B deriving (Eq, Show)
@@ -28,12 +30,25 @@ data PitchClass = PitchClass
 
 makeLenses ''PitchClass
 
+
+-- | Create a pitch class
+--
+-- >>> createPitchClass A flat
+-- PitchClass {_noteName = A, _accidental = Accidental {_accName = Flat, _accAbbreviation = "f", _accArrow = Nothing, _accSemitones = (-1) % 1}}
+-- createPitchClass :: NoteName -> Accidental -> PitchClass
+-- createPitchClass n acc = PitchClass {_noteName = n, _accidental = acc}
+
+
 createPitchClass :: NoteName -> Accidental -> PitchClass
-createPitchClass name acc = PitchClass {_noteName = name, _accidental = acc}
+createPitchClass n acc = PitchClass { _noteName = n, _accidental = acc }
+
+
+
 
 newtype PitchVal = PitchVal Rational
   deriving (Eq, Show, Num)
 
+-- The code snippet defines a list called `noteNameToRational` which associates each `NoteName` with a corresponding `Rational` value.
 noteNameToRational :: [(NoteName, Rational)]
 noteNameToRational =
   [ (C, 0 % 1),
@@ -63,6 +78,8 @@ createOctave oct
     minOctave = -1
     maxOctave = 10
 
+-- mkOct
+
 data Pitch = Pitch
   { _pitchClass :: PitchClass,
     _octave :: Octave
@@ -77,19 +94,21 @@ class HasPitch a where
 instance HasPitch Pitch where
   pitch = pitchVal
 
+
 (=~) :: (HasPitch a) => a -> a -> Bool
 a =~ b = pitch a == pitch b
 
--- createPitch :: PitchClass -> Int -> Maybe Pitch
--- createPitch pc oct = do
---   guard (isValidPitchClass pc && isValidOctave oct)
---   return $ Pitch pc (Octave oct)
+-- instance HasPitch Pitch where
+--   pitch = id
 
 createPitch :: PitchClass -> Int -> Pitch
 createPitch pc oct
   | isValidPitchClass pc && isValidOctave oct = Pitch pc (Octave oct)
   | otherwise = error "Invalid pitch"
 
+
+mkPitch :: PitchClass -> Int -> Pitch
+mkPitch = createPitch
 
 isValidPitchClass :: PitchClass -> Bool
 isValidPitchClass pc = pc ^. noteName `elem` [C, D, E, F, G, A, B]
@@ -106,11 +125,88 @@ pitchVal pitch = PitchVal (pcVal + fromIntegral octVal)
     pcVal = pitchClassVal (pitch ^. pitchClass)
     octVal = octaveVal (pitch ^. octave)
 
+pitchVal' :: Pitch -> (Int, Rational)
+pitchVal' pitch = properFraction (pcVal + fromIntegral octVal)
+  where
+    pcVal = pitchClassVal (pitch ^. pitchClass)
+    octVal = octaveVal (pitch ^. octave)
+
+{- 
+>>> gts6 = createPitch' G twelfthSharp 6
+>>> pitchVal' gts6
+(31, 1 % 6)
+ -}
+
+
+
+
 createPitch' :: NoteName -> Accidental -> Int -> Pitch
-createPitch' pc acc oct = createPitch (createPitchClass pc acc) oct
+createPitch' pc acc = createPitch (createPitchClass pc acc)
 
 
 
+-- mkPC
+mkPC :: NoteName -> Accidental -> PitchClass
+mkPC n acc = PitchClass {_noteName = n, _accidental = acc}
+
+_c, _cs, _df, _d, _ds, _ef, _e, _f, _fs, _g, _gs, _af, _a, _as, _bf, _b :: PitchClass
+_c = mkPC C natural
+_cs = mkPC C sharp
+_df = mkPC D flat
+_d = mkPC D natural
+_ds = mkPC D sharp
+_ef = mkPC E flat
+_e = mkPC E natural
+_f = mkPC F natural
+_fs = mkPC F sharp
+_g = mkPC G natural
+_gs = mkPC G sharp
+_af = mkPC A flat
+_a = mkPC A natural
+_as = mkPC A sharp
+_bf = mkPC B flat
+_b = mkPC B natural
+
+
+{- 
+
+{-# LANGUAGE TemplateHaskell #-}
+
+import Control.Monad
+import Language.Haskell.TH
+
+
+
+pitchClasses :: [(String, PitchClass)]
+pitchClasses = 
+  [ ("c", c), ("cs", cs), ("df", df), ("d", d), 
+    ("ds", ds), ("ef", ef), ("e", e), ("f", f), 
+    ("fs", fs), ("g", g), ("gs", gs), ("af", af), 
+    ("a", a), ("as", as), ("bf", bf), ("b", b) ]
+
+octaves :: [Int]
+octaves = [-4..4] -- Adjust according to your requirement
+
+-- Function to create pitch names
+pitchName :: String -> Int -> String
+pitchName name oct
+  | oct < 0   = name ++ replicate (abs oct) '_'
+  | oct > 0   = name ++ replicate oct '\''
+  | otherwise = name
+
+generatePitches :: Q [Dec]
+generatePitches = 
+  concat <$> forM octaves (\oct -> 
+    forM pitchClasses (\(name, pc) -> do
+      let fname = mkName (pitchName name oct)
+      let expr = [| mkPitch pc oct |]
+      return (ValD (VarP fname) (NormalB expr) [])))
+
+$(generatePitches) -}
+
+
+-- abrev :: Traversal' Accidental String
+-- abrev f acc = fmap (\newAbbrev -> acc & abbreviation .~ newAbbrev) (f (acc ^. abbreviation))
 
 -- changePitchSemitones :: Rational -> Pitch -> Pitch
 -- changePitchSemitones semis pitch =
@@ -248,7 +344,7 @@ instance HasPitch Pitch where
       getter pitch = pitch ^. pitchClass . accidental . semitone
       setter pitch newSemitones = pitch & pitchClass . accidental %~ updateAccidental newSemitones
         where
-          updateAccidental semis acc = acc & semitones .~ semis
+          updateAccidental semis acc = acc & semitones .~ semisa
 
 instance HasPitch PitchClass where
   pitchSemitones = accidental . semitone
@@ -257,6 +353,9 @@ instance HasPitch PitchClass where
 
 -- instance HasPitch Pitch where
 --   pitchSemitones = lens pitchVal (\pitch semis -> pitch {_pitchClass = (_pitchClass pitch) {_accidental = (_accidental (_pitchClass pitch)) {_accSemitones = semis}}})
+
+-- instance HasPitch PitchClass where
+--   pitchSemitones = accidental . accSemitones
 
 -- instance HasPitch PitchClass where
 --   pitchSemitones = accidental . accSemitones
