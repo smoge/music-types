@@ -5,7 +5,6 @@
 module Time.Duration where
 
 import Control.Lens
-import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.Ratio ((%))
 import Test.QuickCheck
@@ -34,11 +33,8 @@ dotMultiplier dotCount = n % d
     n = 2 ^ (dotCount + 1) - 1
     d = 2 ^ dotCount
 
-durationToRq :: Duration -> Rq
-durationToRq d = (1 % (d ^. division)) * dotMultiplier (d ^. dots) * (d ^. multiplier)
-
-durationToRq' :: Duration -> Rational
-durationToRq' d = a * b * c
+durationToRq :: Duration -> Rational
+durationToRq d = a * b * c
   where
     a = 1 % (view division d) :: Rational 
     b = dotMultiplier (view dots d) :: Rational
@@ -55,39 +51,16 @@ instance Ord Duration where
 isMultiplierIdentity :: Duration -> Bool
 isMultiplierIdentity = (1 ==) . view multiplier
 
--- no multiplier
-rqToDuration :: Rq -> Maybe Duration
+rqToDuration :: Rq -> [Duration]
 rqToDuration rq
-  | rq <= 0 = Nothing
-  | otherwise =
-      let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-          dots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-          validDurations = [Duration d dt 1 | d <- divisions, dt <- dots]
-          closestDuration = minimumBy (comparing $ \d -> abs (durationToRq d - rq)) validDurations
-       in if durationToRq closestDuration == rq then Just closestDuration else Nothing
-
-rqToDuration' :: Rq -> Maybe Duration
-rqToDuration' rq
-  | rq <= 0 = Nothing
-  | otherwise =
-      let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-          dots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-          multipliers = [1, 2 / 3, 4 / 5]
-          validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers]
-          closestDuration = minimumBy (comparing $ \d -> abs (durationToRq d - rq)) validDurations
-       in if durationToRq closestDuration == rq then Just closestDuration else Nothing
-
-rqToDuration'' :: Rq -> [Duration]
-rqToDuration'' rq
   | rq <= 0 = []
   | otherwise =
       let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-          dots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+          dots = [0..12]
           multipliers = [1, 2 / 3, 4 / 5, 3/5, 2/5, 5/6, 6/7, 5/7, 4/7, 3/7, 2/7]
           validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers]
           matchingDurations = filter (\d -> durationToRq d == rq) validDurations
        in matchingDurations
-
 
 durationToLilypondType :: Duration -> String
 durationToLilypondType dur =
@@ -105,49 +78,25 @@ accessDivision = view division
 ---------------------------------------------------------------------------- !!
 
 
--- instance Arbitrary Duration where
---   arbitrary = do
---     div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
---     dt <- choose (0, 12)
---     return Duration {_division = div, _dots = dt, _multiplier = (1 % 1)}
-
--- instance Arbitrary Duration where
---   arbitrary = do
---     div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
---     dt <- choose (0, 2)
---     mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5]
---     return Duration {_division = div, _dots = dt, _multiplier = mult}
-
--- -- prop_durationToRq :: Duration -> Bool
--- -- prop_durationToRq d = (rqToDuration . durationToRq) d == Just d
-
--- prop_rqToDuration' :: Duration -> Bool
--- prop_rqToDuration' d = (rqToDuration' . durationToRq) d == Just d
-
--- runTests :: IO ()
--- runTests = verboseCheck prop_rqToDuration'
-
-
 instance Arbitrary Duration where
   arbitrary = do
-    div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-    dt <- choose (0, 3)
-    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3/5, 5/6]
+    div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+    dt <- choose (0, 10)
+    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3/5, 5/6, 3/5, 2/5, 5/6, 6/7, 5/7, 4/7, 3/7, 2/7]
     return Duration {_division = div, _dots = dt, _multiplier = mult}
 
-prop_rqToDuration' :: Duration -> Bool
-prop_rqToDuration' d =
+prop_rqToDuration :: Duration -> Bool
+prop_rqToDuration d =
   let rq = durationToRq d
-      durations = rqToDuration'' rq
+      durations = rqToDuration rq
    in d `elem` durations
 
 runTests :: IO ()
-runTests = verboseCheck prop_rqToDuration'
+runTests = verboseCheck prop_rqToDuration
 
 ---------------------------------------------------------------------------- !!
 -- ~ End QuickCheck 
 ---------------------------------------------------------------------------- !!
-
 {-
 d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
 durationToRq d4
