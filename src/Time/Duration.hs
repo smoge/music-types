@@ -9,15 +9,13 @@ import Data.Ratio ((%))
 import Test.QuickCheck
 
 type Division = Integer
-
 type Dots = Int
-
 type Rq = Rational
 
 data Duration = Duration
-  { _division :: Division,
-    _dots :: Dots,
-    _multiplier :: Rational
+  { _division :: Division
+  , _dots :: Dots
+  , _multiplier :: Rational
   }
   deriving (Eq, Show)
 
@@ -46,6 +44,7 @@ instance Ord Duration where
 isMultiplierIdentity :: Duration -> Bool
 isMultiplierIdentity = (1 ==) . view multiplier
 
+-- no multiplier
 rqToDuration :: Rq -> Maybe Duration
 rqToDuration rq
   | rq <= 0 = Nothing
@@ -128,5 +127,7 @@ ghci > d1 = Duration 4 3 1
 ghci> d1
 Duration {division = 4, dots = 1, multiplier = 1 % 1}
 ghci> durationToLilypondType d1
+"4."
+ -}i> durationToLilypondType d1
 "4."
  -}
