@@ -57,7 +57,7 @@ rqToDuration rq
   | otherwise =
       let divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
           dots = [0..12]
-          multipliers = [1, 2 / 3, 4 / 5, 3/5, 2/5, 5/6, 6/7, 5/7, 4/7, 3/7, 2/7]
+          multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
           validDurations = [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers]
           matchingDurations = filter (\d -> durationToRq d == rq) validDurations
        in matchingDurations
@@ -82,7 +82,7 @@ instance Arbitrary Duration where
   arbitrary = do
     div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
     dt <- choose (0, 10)
-    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3/5, 5/6, 3/5, 2/5, 5/6, 6/7, 5/7, 4/7, 3/7, 2/7]
+    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
     return Duration {_division = div, _dots = dt, _multiplier = mult}
 
 prop_rqToDuration :: Duration -> Bool
