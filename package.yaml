@@ -27,6 +27,11 @@ dependencies:
 - pretty-show
 - lens
 - regex-tdfa
+- vector-space
+- QuickCheck
+- containers
+- text
+- template-haskell
 library:
   source-dirs: src
   exposed-modules:
@@ -36,6 +41,8 @@ library:
   - Math.Primes
   - Pitch.Pitch
   - Pitch.Accidental
+  - Pitch.PitchNum
+  - Time.Duration
 executables:
   music-types-exe:
     main: Main.hs
@@ -46,3 +53,13 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - music-types
+tests:
+  my-tests:
+    main: Spec.hs
+    source-dirs:
+      - tests
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    dependencies:
+      - base
+      - music-types
+      - QuickCheck
