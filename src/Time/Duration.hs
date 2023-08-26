@@ -1,6 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Redundant bracket" #-}
 
 module Time.Duration
   ( Duration (..),
@@ -9,27 +7,25 @@ module Time.Duration
     Dots,
     durationToRq,
     rqToDuration,
-    divisions, 
-    dotsList, 
-    multipliers, 
   )
 where
 
-
-import Control.Lens
+import Control.Lens (makeLenses, view)
 import Data.Ord (comparing)
 import Data.Ratio ((%))
+import qualified Data.Set as Set
 import Test.QuickCheck
 
 type Division = Integer
+
 type Dots = Int
+
 type Rq = Rational
 
-
 data Duration = Duration
-  { _division :: Division
-  , _dots :: Dots
-  , _multiplier :: Rational
+  { _division :: Division,
+    _dots :: Dots,
+    _multiplier :: Rational
   }
   deriving (Eq, Show)
 
@@ -41,28 +37,52 @@ class HasDuration a where
   _rq a = durationToRq (_duration a)
 
 dotMultiplier :: Dots -> Rational
-dotMultiplier dotCount = n % d
-  where
-    n = 2 ^ (dotCount + 1) - 1
-    d = 2 ^ dotCount
+dotMultiplier 0 = 1
+dotMultiplier 1 = 3 / 2
+dotMultiplier 2 = 7 / 4
+dotMultiplier 3 = 15 / 8
+dotMultiplier 4 = 31 / 16
+dotMultiplier 5 = 63 / 32
+dotMultiplier 6 = 127 / 64
+dotMultiplier _ = error "Invalid number of dots"
 
-durationToRq :: Duration -> Rational
-durationToRq d = a * b * c
-  where
-    a = 1 % (view division d) :: Rational
-    b = dotMultiplier (view dots d) :: Rational
-    c = view multiplier d :: Rational
-
+generateDivisions :: Int -> [Int]
+generateDivisions n = [2^x | x <- [0..n]]
 
 divisions :: [Division]
-divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+divisions = map fromIntegral (generateDivisions 9)
 
-multipliers :: [Rational]
-multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
+durationToRq :: Duration -> Rational
+durationToRq (Duration div dots mult) =
+  (1 % div) * dotMultiplier dots * mult
+
+rationalNumbers :: [Rational]
+rationalNumbers =
+  [ 2 % 3,
+    3 % 4,
+    3 % 5,
+    4 % 5,
+    4 % 7,
+    4 % 9,
+    5 % 6,
+    5 % 7,
+    5 % 8,
+    5 % 9,
+    6 % 7,
+    6 % 11,
+    7 % 8,
+    7 % 9,
+    7 % 10,
+    7 % 11,
+    8 % 9,
+    8 % 11,
+    9 % 10,
+    9 % 11,
+    10 % 11
+  ]
 
 dotsList :: [Dots]
-dotsList = [0 .. 12]
-      
+dotsList = [0 .. 6]
 
 compareDurations :: Duration -> Duration -> Ordering
 compareDurations = comparing durationToRq
@@ -73,39 +93,28 @@ instance Ord Duration where
 isMultiplierIdentity :: Duration -> Bool
 isMultiplierIdentity = (1 ==) . view multiplier
 
-
 rqToDuration :: Rq -> [Duration]
 rqToDuration rq
   | rq <= 0 = []
-  | otherwise =
-      [Duration d dt m | d <- divisions, dt <- dots, m <- multipliers, durationToRq (Duration d dt m) == rq]
+  | otherwise = concatMap potentialDurations divisions
   where
-    divisions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-    dots = [0 .. 12]
-    multipliers = [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
+    multipliersSet = Set.fromList rationalNumbers
 
+    potentialDurations :: Division -> [Duration]
+    potentialDurations d = concatMap (potentialDurationsForDot d) dotsList
 
-durationToLilypondType :: Duration -> String
-durationToLilypondType dur =
-  let divStr =
-        case view division dur of
-          0 -> "\\breve"
-          n -> show n
-   in divStr ++ replicate (view dots dur) '.'
+    potentialDurationsForDot :: Division -> Dots -> [Duration]
+    potentialDurationsForDot d dt =
+      let potentialMultiplier = rq / ((1 % d) * dotMultiplier dt)
+       in [Duration d dt potentialMultiplier | Set.member potentialMultiplier multipliersSet]
 
-accessDivision :: Duration -> Division
-accessDivision = view division
-
----------------------------------------------------------------------------- !!
--- ~ QuickCheck 
----------------------------------------------------------------------------- !!
-
+-- QuickCheck
 
 instance Arbitrary Duration where
   arbitrary = do
-    div <- Test.QuickCheck.elements [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-    dt <- choose (0, 12)
-    mult <- Test.QuickCheck.elements [1, 2 / 3, 4 / 5, 3 / 5, 2 / 5, 5 / 6, 6 / 7, 5 / 7, 4 / 7, 3 / 7, 2 / 7, 8 / 9, 7 / 9, 5 / 9, 9 / 10, 7 / 10, 10 / 11, 9 / 11, 11 / 12]
+    div <- elements divisions
+    dt <- choose (0, 6)
+    mult <- elements rationalNumbers
     return Duration {_division = div, _dots = dt, _multiplier = mult}
 
 prop_rqToDuration :: Duration -> Bool
@@ -114,51 +123,26 @@ prop_rqToDuration d =
       durations = rqToDuration rq
    in d `elem` durations
 
-
 runTests :: IO ()
-runTests = quickCheckWith (stdArgs {maxSuccess = 100}) prop_rqToDuration
-
----------------------------------------------------------------------------- !!
--- ~ End QuickCheck 
----------------------------------------------------------------------------- !!
-{-
-d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
-durationToRq d4
-r1 = durationToRq d4
-rqToDuration r1
-
-d1 = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
-d2 = Duration {_division = 8, _dots = 0, _multiplier = 1}
-d3 = Duration {_division = 8, _dots = 0, _multiplier = 4/5}
-d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
-d5 = Duration {_division = 8, _dots = 2, _multiplier = 1}
-
-durationToRq d3
-
-durationToRq d4
-durationToRq d5
-
- -}
+runTests = verboseCheckWith (stdArgs {maxSuccess = 10000}) prop_rqToDuration
 
 
-{-
-d :: Duration
-d1 = Duration {_division = 4, _dots = 1, _multiplier = 0.75}
-d2 = Duration {_division = 8, _dots = 0, _multiplier = 1}
-d3 = Duration {_division = 8, _dots = 0, _multiplier = 4/5}
-d4 = Duration {_division = 8, _dots = 1, _multiplier = 1}
-d5 = Duration {_division = 8, _dots = 2, _multiplier = 1}
+--
 
- -}
-{-
-ghci> d3= Duration {_division = 8, _dots = 0, _multiplier = 4/5}
-ghci> durationToRq d3
-10 % 1
- -}
+allDurations :: [Duration]
+allDurations =
+  [ Duration d dt m
+    | d <- [1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
+      dt <- dotsList,
+      m <- rationalNumbers
+  ]
 
-{-
-ghci > d1 = Duration 4 3 1
-ghci> d1
-Duration {division = 4, dots = 1, multiplier = 1 % 1}
-ghci> durationToLilypondType d1
--}
+allRqs :: [Rq]
+allRqs = map durationToRq allDurations
+
+durationsForRq :: Rq -> [Duration]
+durationsForRq rq = filter (\d -> durationToRq d == rq) allDurations
+
+countDurationsForRq :: Rq -> Int
+countDurationsForRq rq = length $ durationsForRq rq
+
