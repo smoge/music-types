@@ -65,8 +65,10 @@ dotMultiplier d = dotArray !! d
 
 
 
+-- generateDivisions :: Int -> [Division]
+-- generateDivisions n = [2^x | x <- [0..n]]
 generateDivisions :: Int -> [Division]
-generateDivisions n = [2^x | x <- [0..n]]
+generateDivisions n = map (2^) [0..n]
 
 divisions :: [Division]
 divisions = generateDivisions 9
@@ -116,22 +118,6 @@ rqToDuration rq
           !divisor = reciprocalDiv * dotMult
           potentialMultiplier = rq / divisor
        in [Duration d dt potentialMultiplier | Set.member potentialMultiplier multipliersSet]
-
-
--- rqToDuration :: Rq -> [Duration]
--- rqToDuration rq
---   | rq <= 0 = []
---   | otherwise = concatMap potentialDurations divisions
---   where
---     multipliersSet = Set.fromList rationalNumbers
-
---     potentialDurations :: Division -> [Duration]
---     potentialDurations d = concatMap (potentialDurationsForDot d) dotsList
-
---     potentialDurationsForDot :: Division -> Dots -> [Duration]
---     potentialDurationsForDot d dt =
---       let potentialMultiplier = rq / ((1 % d) * dotMultiplier dt)
---        in [Duration d dt potentialMultiplier | Set.member potentialMultiplier multipliersSet]
 
 
 
