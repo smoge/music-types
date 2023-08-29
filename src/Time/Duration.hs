@@ -57,21 +57,21 @@ class HasDuration a where
   _rq a = durationToRq (_duration a)
   _duration _ = Duration 1 0 1 -- default implementation
  
--- dotMultiplier :: Dots -> Rational
--- dotMultiplier d = dotArray !! d
---   where
---     dotArray = [1, 3 / 2, 7 / 4, 15 / 8, 31 / 16, 63 / 32, 127 / 64]
-
-
 dotMultiplier :: Dots -> Rational
-dotMultiplier 0 = 1
-dotMultiplier 1 = 3 / 2
-dotMultiplier 2 = 7 / 4
-dotMultiplier 3 = 15 / 8
-dotMultiplier 4 = 31 / 16
-dotMultiplier 5 = 63 / 32
-dotMultiplier 6 = 127 / 64
-dotMultiplier _ = error "Invalid number of dots"
+dotMultiplier d = dotArray !! d
+  where
+    dotArray = [1, 3 / 2, 7 / 4, 15 / 8, 31 / 16, 63 / 32, 127 / 64]
+
+
+-- dotMultiplier :: Dots -> Rational
+-- dotMultiplier 0 = 1
+-- dotMultiplier 1 = 3 / 2
+-- dotMultiplier 2 = 7 / 4
+-- dotMultiplier 3 = 15 / 8
+-- dotMultiplier 4 = 31 / 16
+-- dotMultiplier 5 = 63 / 32
+-- dotMultiplier 6 = 127 / 64
+-- dotMultiplier _ = error "Invalid number of dots"
 
 
 -- generateDivisions :: Int -> [Division]
@@ -108,12 +108,39 @@ addDurations d1 d2 =
     let rqSum = durationToRq d1 + durationToRq d2
     in rqToDuration rqSum
 
+scaleDuration :: Real a => a -> Duration -> Duration
+scaleDuration factor d =
+    let rqScaled = fromRational (toRational factor) * durationToRq d
+    in case rqToDuration rqScaled of
+         (firstDuration:_) -> firstDuration
+         [] -> error "Cannot represent scaled value as a Duration"
+
 
 instance Ord Duration where
   compare :: Duration -> Duration -> Ordering
   compare = compareDurations
 
+instance Num Duration where
+  (+) :: Duration -> Duration -> Duration
+  d1 + d2 = 
+    case addDurations d1 d2 of
+      (firstDuration:_) -> firstDuration
+      [] -> error "Cannot represent sum as a Duration"
 
+  (-) :: Duration -> Duration -> Duration
+  d1 - d2 = 
+    case rqToDuration (durationToRq d1 - durationToRq d2) of
+      (firstDuration:_) -> firstDuration
+      [] -> error "Cannot represent difference as a Duration"
+
+  (*) :: Duration -> Duration -> Duration
+  d1 * d2 = 
+    case rqToDuration (durationToRq d1 * durationToRq d2) of
+      (firstDuration:_) -> firstDuration
+      [] -> error "Cannot represent product as a Duration"
+
+  abs :: Duration -> Duration
+  abs = id
 
 {-
 
@@ -163,31 +190,31 @@ Converts a Rational number to a list of Durations.
 [Duration {_division = 2, _dots = 1, _multiplier = 7 % 9},Duration {_division = 2, _dots = 2, _multiplier = 2 % 3}]
 
 -}
--- rqToDuration :: Rq -> [Duration]
--- rqToDuration rq
---   | rq <= 0 = []
---   | otherwise = foldMap potentialDurations divisions
---   where
---     potentialDurations :: Division -> [Duration]
---     potentialDurations d = foldMap (potentialDurationsForDot d) dotsList
-
---     potentialDurationsForDot :: Division -> Dots -> [Duration]
---     potentialDurationsForDot d dt =
---       let reciprocalDiv = 1 % fromIntegral d
---           dotMult = dotMultiplier dt
---           divisor = reciprocalDiv * dotMult
---           potentialMultiplier = rq / divisor
---        in [Duration d dt potentialMultiplier | Set.member potentialMultiplier multipliersSet]
-
-
 rqToDuration :: Rq -> [Duration]
 rqToDuration rq
   | rq <= 0 = []
-  | otherwise =
-      let multipliers =  rationalNumbers
-          validDurations = [Duration d dt m | d <- divisions, dt <- dotsList, m <- multipliers]
-          matchingDurations = filter (\d -> durationToRq d == rq) validDurations
-       in matchingDurations
+  | otherwise = foldMap potentialDurations divisions
+  where
+    potentialDurations :: Division -> [Duration]
+    potentialDurations d = foldMap (potentialDurationsForDot d) dotsList
+
+    potentialDurationsForDot :: Division -> Dots -> [Duration]
+    potentialDurationsForDot d dt =
+      let reciprocalDiv = 1 % fromIntegral d
+          dotMult = dotMultiplier dt
+          divisor = reciprocalDiv * dotMult
+          potentialMultiplier = rq / divisor
+       in [Duration d dt potentialMultiplier | Set.member potentialMultiplier multipliersSet]
+
+
+-- rqToDuration :: Rq -> [Duration]
+-- rqToDuration rq
+--   | rq <= 0 = []
+--   | otherwise =
+--       let multipliers =  rationalNumbers
+--           validDurations = [Duration d dt m | d <- divisions, dt <- dotsList, m <- multipliers]
+--           matchingDurations = filter (\d -> durationToRq d == rq) validDurations
+--        in matchingDurations
 
 
 
