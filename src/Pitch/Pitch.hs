@@ -4,6 +4,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Pitch.Pitch
   ( NoteName (..),
@@ -31,14 +32,16 @@ import Control.Lens
 -- import Control.Lens.TH
 -- import Data.Fixed (mod')
 
-import Data.List
+import Data.Kind (Type)
+
+import Data.List ( minimumBy )
 import qualified Data.Map as Map
 import qualified Data.Map.Strict as MapS
-import Data.Maybe
-import Data.Ord
+import Data.Maybe ( fromMaybe )
+import Data.Ord ()
 import Data.Ratio
 import Pitch.Accidental
-import Test.QuickCheck
+--import Test.QuickCheck
 
 data NoteName = C | D | E | F | G | A | B deriving (Eq, Enum, Ord, Show)
 
@@ -49,6 +52,9 @@ data PitchClass = PitchClass
     _accidental :: Pitch.Accidental.Accidental
   }
   deriving (Show)
+
+
+makeLenses ''PitchClass
 
 instance Ord PitchClass where
   compare :: PitchClass -> PitchClass -> Ordering
@@ -184,6 +190,22 @@ instance Ord Pitch where
   compare :: Pitch -> Pitch -> Ordering
   compare p1 p2 = compare (pitchVal''' p1) (pitchVal''' p2)
 
+class AffineSpace p where
+  type Diff p :: Type
+  
+  (.+^) :: p -> Diff p -> p
+  (.-.) :: p -> p -> Diff p
+
+
+instance AffineSpace Pitch where
+  type Diff Pitch = Interval
+  
+  p .+^ (Interval interval) = pitchValToSelectedPitch $ (pitchVal''' p + interval) 
+  p1 .-. p2 = Interval $ (pitchVal''' p1 - pitchVal''' p2) 
+
+
+newtype Interval = Interval Rational deriving (Show, Eq, Num)
+
 
 class HasPitch a where
   pitch :: a -> Pitch
@@ -196,6 +218,7 @@ instance HasPitch Pitch where
 p1 =~ p2 = (pitchVal''' (pitch p1)) == (pitchVal''' (pitch p2))
 
 instance Eq Pitch where
+  (==) :: Pitch -> Pitch -> Bool
   p1 == p2 = (_pitchClass p1 == _pitchClass p2) && (_octave p1 == _octave p2)
 
 
