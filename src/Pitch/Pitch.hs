@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, FlexibleInstances #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
@@ -50,28 +48,6 @@ import qualified Data.Map as Map
 
 data NoteName = C | D | E | F | G | A | B deriving (Eq, Enum, Ord, Show)
 
--- instance Show NoteName where
---     show C = "c"
---     show D = "d"
---     show E = "e"
---     show F = "f"
---     show G = "g"
---     show A = "a"
---     show B = "b"
-
--- instance Read NoteName where
---     readsPrec _ "c" = [(C, "")]
---     readsPrec _ "d" = [(D, "")]
---     readsPrec _ "e" = [(E, "")]
---     readsPrec _ "f" = [(F, "")]
---     readsPrec _ "g" = [(G, "")]
---     readsPrec _ "a" = [(A, "")]
---     readsPrec _ "b" = [(B, "")]
---     readsPrec _ s   = []  -- fallback case
-
-
--- newtype PitchVal = PitchVal Rational
---   deriving (Eq, Show, Num, Ord)
 type PitchVal = Rational
 
 data PitchClass = PitchClass
@@ -88,78 +64,6 @@ instance Ord PitchClass where
 instance Eq PitchClass where
   pc1 == pc2 =  pitchClassVal pc1 == pitchClassVal pc2
 
--- instance Show PitchClass where
---   show pc = show (_noteName pc) ++ show (_accidental pc)
-
--- instance Read PitchClass where
---     readsPrec _ s = 
---         [ (PitchClass noteName accidental, rest2)
---         | (noteNameStr, rest1) <- lex s
---         , noteName <- [read noteNameStr]
---         , (accidentalStr, rest2) <- lex rest1
---         , accidental <- [read accidentalStr]
---         ]
-
--- instance Read Pitch.Pitch.PitchClass where
---     readsPrec _ input = 
---         [ (Pitch.Pitch.PitchClass nn acc, rest2)
---         | (nnStr, rest1) <- lex input
---         , nn <- maybeToList $ readNoteName nnStr
---         , (accStr, rest2) <- lexWithDefault rest1
---         , acc <- maybeToList $ lookupAccidental accStr
---         ]
-
--- -- Helper function to get NoteName. 
--- -- It should return Maybe NoteName instead of using error.
--- readNoteName :: String -> Maybe Pitch.Pitch.NoteName
--- readNoteName str = case str of
---     "c" -> Just Pitch.Pitch.C
---     "d" -> Just Pitch.Pitch.D
---     "e" -> Just Pitch.Pitch.E
---     "f" -> Just Pitch.Pitch.F
---     "g" -> Just Pitch.Pitch.G
---     "a" -> Just Pitch.Pitch.A
---     "b" -> Just Pitch.Pitch.B
---     _   -> Nothing
-
--- -- If there's no accidental, just continue with the rest of the string
--- lexWithDefault :: String -> [(String, String)]
--- lexWithDefault s = case lex s of
---     []          -> [("", s)]
---     pairs@(_:_) -> pairs
-
-
-
--- -- Helper function to lookup accidental by abbreviation
--- lookupAccidental :: String -> Maybe Pitch.Accidental.Accidental
--- lookupAccidental abbrev = 
---     find (\(Pitch.Accidental.Accidental _ a _ _) -> a == abbrev) Pitch.Accidental.accidentals
-
-
--- readPitchClass :: String -> Pitch.Pitch.PitchClass
--- readPitchClass s = 
---     let (noteStr, accStr) = splitAt 1 s
---         note = fromMaybe Pitch.Pitch.C $ readNoteName noteStr
---         acc = read accStr :: Pitch.Accidental.Accidental
---     in Pitch.Pitch.PitchClass note acc
-    
--- readNoteName :: String -> Pitch.Pitch.NoteName
--- readNoteName "c" = Pitch.Pitch.C
--- readNoteName "d" = Pitch.Pitch.D
--- readNoteName "e" = Pitch.Pitch.E
--- readNoteName "f" = Pitch.Pitch.F
--- readNoteName "g" = Pitch.Pitch.G
--- readNoteName "a" = Pitch.Pitch.A
--- readNoteName "b" = Pitch.Pitch.B
--- readNoteName _   = error "Invalid Note Name"
-
-
-
--- pitchClassVal :: PitchClass -> Rq
--- pitchClassVal pc = base + acVal
---   where
---     base = fromMaybe (0 % 1) (lookup (_noteName pc) noteNameToRational)
---     acVal = _accSemitones (_accidental pc)
 
 
 pitchClassVal :: PitchClass -> Pitch.Accidental.Rq
@@ -283,33 +187,6 @@ fromOctave :: Octave -> Int
 fromOctave (Octave n) = n
 
 
--- instance Show Octave where
---   show (Octave n)
---     | x == 4    = ""
---     | x > 4     = replicate (x - 4) '\''
---     | x < 4     = replicate (abs (4 - x)) ','
---     | otherwise = error "Unreachable pattern in show for Octave. This should never happen."
---     where x = n 
-
-
--- instance Read Octave where
---     readsPrec _ s
---       | null s         = [(Octave 4, "")]
---       | head s == '\'' = [(Octave (4 + length prefix), rest)]
---       | head s == ','  = [(Octave (4 - length prefix), rest)]
---       | otherwise      = [] -- fallback case
---       where 
---         (prefix, rest) = span (== head s) s
-
-{- 
-newtype Octave = Octave { unOctave :: Int }
-  deriving (Eq, Show, Num, Bounded)
-
-createOctave :: Int -> Maybe Octave
-createOctave oct
-  | oct >= minBound && oct <= maxBound = Just (Octave oct)
-  | otherwise = Nothing
- -}
 createOctave :: Int -> Octave
 createOctave     = Octave 
 
@@ -330,59 +207,6 @@ instance Ord Pitch where
 instance Eq Pitch where
   p1 == p2 =  pitchVal p1 == pitchVal p2
 
--- instance Show Pitch where
---   show p = show (_pitchClass p)  ++ show (_octave p)
-
--- instance Read Pitch where
---     readsPrec _ s = 
---         [ (Pitch pitchClass octave, rest2) 
---         | (pitchClassStr, rest1) <- lex s
---         , pitchClass <- [read pitchClassStr]
---         , (octaveStr, rest2) <- lex rest1
---         , octave <- [read octaveStr]
---         ]
-
--- instance Read Pitch where
---     readsPrec _ s = 
---         [ (Pitch pc oct, rest2)
---         | (pcStr, rest1) <- lex s
---         , (octStr, rest2) <- span (`elem` ",'") rest1
---         , pc <- [read pcStr :: PitchClass]
---         , oct <- [read octStr :: Octave]
---         ]
-
-
-
--- instance Read Pitch where
---     readsPrec _ s = 
---         [ (Pitch pitchClass octave, rest2) 
---         | (pitchClassStr, rest1) <- lex s
---         , pitchClass <- [read pitchClassStr]
---         , (octaveStr, rest2) <- lex rest1
---         , octave <- [read octaveStr]
---         ]
-
-
-class HasPitch a where
-  pitch :: a -> Pitch
-  modifyPitch :: (Pitch -> Pitch) -> a -> a
-
-instance HasPitch Pitch where
-  pitch = id  -- Identity function, returns the same pitch
-  modifyPitch f p = f p
---   fifthUp p = modifyPitch (transpose 7) p 
-
-
-
-
--- Assuming you have defined NoteName, createPitchClass, and alterationFromValue functions
-
-
-
--- class HasPitch a where
---   pitch :: a -> PitchVal
-
---  pitch = pitchVal
 
 (=~) :: (HasPitch a) => a -> a -> Bool
 a =~ b = pitch a == pitch b
@@ -448,14 +272,6 @@ pitchVal pitch_ = pcVal + fromIntegral octVal
     pcVal = pitchClassVal (pitch_ ^. pitchClass)
     octVal = octaveVal (pitch_ ^. octave)
 
--- pitch :: a -> PitchVal
--- pitch = pitchVal
-
--- pitchVal' :: Pitch -> (Int, Pitch.Accidental.Rq)
--- pitchVal' pitch_ = properFraction (pcVal + fromIntegral octVal)
---   where
---     pcVal = pitchClassVal (pitch_ ^. pitchClass)
---     octVal = octaveVal (pitch_ ^. octave)
 
 {- 
 >>> gts6 = createPitch' G twelfthSharp 6
@@ -475,54 +291,6 @@ createPitch' pc acc = createPitch (createPitchClass pc acc)
 mkPC :: NoteName -> Pitch.Accidental.Accidental -> PitchClass
 mkPC n acc = PitchClass {_noteName = n, _accidental = acc}
 
--- data PitchInput = PitchInput NoteName Accidental
-
--- class MkPC a => PitchClass where
---   mkPC :: a -> PitchClass
-
--- instance MkPC (NoteName, Accidental) where
---   mkPC (n, acc) = PitchClass {_noteName = n, _accidental = acc}
-
-
--- instance MkPC PitchInput where
---   mkPC (PitchInput n acc) = PitchClass {_noteName = n, _accidental = acc}
-
--- data PitchInput = PitchInput String String
-
--- instance MkPC PitchInput where
---   mkPC (PitchInput n acc) = case (readMaybe n, readMaybe acc) of
---                               (Just noteName, Just accidental) -> PitchClass {_noteName = noteName, _accidental = accidental}
---                               _ -> error "Invalid input"
-
-
-
--- -- Arbitrary instance for NoteName
--- instance Arbitrary NoteName where
---   arbitrary = Test.QuickCheck.elements [C, D, E, F, G, A, B]
-
--- -- Arbitrary instance for Accidental
--- instance Arbitrary Pitch.Accidental.Accidental where
---   arbitrary :: Gen Pitch.Accidental.Accidental
---   arbitrary = Test.QuickCheck.elements Pitch.Accidental.accidentals
-
--- -- Arbitrary instance for Octave
--- instance Arbitrary Octave where
---   arbitrary = Octave <$> choose (2, 8)
-
--- -- Generate a PitchClass with arbitrary NoteName and Accidental
--- instance Arbitrary PitchClass where
---   arbitrary = PitchClass <$> arbitrary <*> arbitrary
-
--- -- Generate a Pitch with arbitrary PitchClass and Octave
--- instance Arbitrary Pitch where
---   arbitrary = Pitch <$> arbitrary <*> arbitrary
-
--- instance Arbitrary PitchVal where
---     arbitrary = PitchVal <$> arbitrary
-
-
--- allAccidentals :: [Pitch.Accidental.Accidental]
--- allAccidentals = [Pitch.Accidental.sharp, Pitch.Accidental.flat, Pitch.Accidental.natural, Pitch.Accidental.quarterFlat, Pitch.Accidental.quarterSharp]
 
 allPitchClasses :: [PitchClass]
 allPitchClasses = [mkPC note acc | note <- [C .. B], acc <- accidentals]
@@ -595,9 +363,6 @@ selectPitch' = minimumBy comparePitches
 selectPitch :: [Pitch] -> Pitch
 selectPitch = minimumBy comparePitches
 
--- Function to select one pitch based on rules
--- selectPitch :: [Pitch] -> Pitch
--- selectPitch = minimumBy (comparing (\p -> (_accSemitones . _accidental . _pitchClass) p))
 
 pitchValToSelectedPitch :: PitchVal -> Pitch
 pitchValToSelectedPitch pv = selectPitch $ pitchValToPitches pv
@@ -606,161 +371,6 @@ pitchValToSelectedPitch':: PitchVal -> Pitch
 pitchValToSelectedPitch' pv = selectPitch' $ pitchValToPitches pv
 
 
--- enharmonicPair :: Gen (Pitch, Pitch)
--- enharmonicPair = do
---     pitch1 <- arbitrary
---     let possibleEnharmonics = filter (\p -> p /= pitch1 && pitchVal p == pitchVal pitch1) allPitches
---     if null possibleEnharmonics
---        then enharmonicPair  -- recursively try again
---        else do
---            pitch2 <- Test.QuickCheck.elements possibleEnharmonics
---            return (pitch1, pitch2)
-
-
--- -- -- A generator for a pair of enharmonic pitches
--- -- enharmonicPair :: Gen (Pitch, Pitch)
--- -- enharmonicPair = do
--- --     pitch1 <- arbitrary
--- --     let possibleEnharmonics = filter (\p -> p /= pitch1 && pitchVal p == pitchVal pitch1) allPitches
--- --     if null possibleEnharmonics
--- --        then enharmonicPair  -- recursively try again
--- --        else do
--- --            pitch2 <- Test.QuickCheck.elements possibleEnharmonics
--- --            return (pitch1, pitch2)
-
--- prop_EnharmonicEqualityCustom :: Property
--- prop_EnharmonicEqualityCustom = forAll enharmonicPair $ \(p1, p2) -> p1 =~ p2
-
--- prop_EnharmonicEqualityModified :: Pitch -> Pitch -> Bool
--- prop_EnharmonicEqualityModified p1 p2
---     | p1 /= p2 && pitchVal p1 == pitchVal p2 = p1 =~ p2
---     | otherwise = False
-
-
-
--- showPitch :: Pitch -> String
--- showPitch pitch = show (_noteName $ _pitchClass pitch) ++ " " ++ show (_accName $ (_accidental $ _pitchClass pitch))
-
-
--- prop_EnharmonicEquality :: Pitch -> Pitch -> Property
--- prop_EnharmonicEquality p1 p2 =
---     (p1 /= p2 && pitchVal p1 == pitchVal p2) ==> (p1 =~ p2)
-
--- -- You can add more properties if required...
-
-
--- -- Modify the property to return a more detailed result using the showPitch function
--- prop_EnharmonicEqualityCustomVerbose :: Property
--- prop_EnharmonicEqualityCustomVerbose = forAll enharmonicPair $ \(p1, p2) ->
---     counterexample (showPitch p1 ++ " and " ++ showPitch p2) (p1 =~ p2)
-
-
-
--- main :: IO ()
--- main = do
---     verboseCheckWith (stdArgs {maxSuccess = 1000}) prop_EnharmonicEqualityCustomVerbose
-
-
-
-
-
-
-{- 
-
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveLift #-}
-
-import Control.Monad
-import Language.Haskell.TH
-
-
-data PitchClass = ... deriving (Lift, ...)
-
-pitchClasses :: [(String, PitchClass)]
-pitchClasses =
-  [ ("c", _c),
-    ("cs", _cs),
-    ("df", _df),
-    ("d", _d),
-    ("ds", _ds),
-    ("ef", _ef),
-    ("e", _e),
-    ("f", _f),
-    ("fs", _fs),
-    ("g", _g),
-    ("gs", _gs),
-    ("af", _af),
-    ("a", _a),
-    ("as", _as),
-    ("bf", _bf),
-    ("b", _b)
-  ]
-
-octaves :: [Int]
-octaves = [-4 .. 4] -- Adjust according to your requirement
-
--- Function to create pitch names
-pitchName :: String -> Int -> String
-pitchName name oct
-  | oct < 0 = name ++ replicate (abs oct) '_'
-  | oct > 0 = name ++ replicate oct '\''
-  | otherwise = name
-
-generatePitches :: Q [Dec]
-generatePitches =
-  concat
-    <$> forM
-      octaves
-      ( \oct ->
-          forM
-            pitchClasses
-            ( \(name, pc) -> do
-                let fname = mkName (pitchName name oct)
-                let expr = [|mkPitch pc oct|]
-                return (ValD (VarP fname) (NormalB expr) [])
-            )
-      )
-
-$(generatePitches)
-
-
--}
-
-
--- abrev :: Traversal' Accidental String
--- abrev f acc = fmap (\newAbbrev -> acc & abbreviation .~ newAbbrev) (f (acc ^. abbreviation))
-
--- changePitchSemitones :: Rational -> Pitch -> Pitch
--- changePitchSemitones semis pitch =
---   let pc = pitch ^. pitchClass
---       oct = pitch ^. octave
---       newPC = changePitchClassSemitones semis pc
---       newOct = changeOctaveSemitones semis oct
---    in createPitch (fromMaybe pc newPC) (fromMaybe oct newOct)
-
--- changePitchClassSemitones :: Rational -> PitchClass -> Maybe PitchClass
--- changePitchClassSemitones semis pc = do
---   let currentSemitones = pc ^. accidental . semitone
---       newSemitones = currentSemitones + semis
---       acc = pc ^. accidental
---       newAcc = acc & semitone .~ newSemitones
---    in Just $ pc & accidental .~ newAcc
-
--- changeOctaveSemitones :: Rational -> Octave -> Maybe Octave
--- changeOctaveSemitones semis oct = do
---   let currentOctave = oct
---       newOctave = currentOctave + fromIntegral (truncate semis `div` 12)
---    in createOctave newOctave
-
---
-
-{-
-createPitch :: PitchClass -> Int -> Maybe Pitch
-createPitch pc o = do
-  oct <- createOctave o
-  return $ Pitch pc oct
-
- -}
 
 {-
 
