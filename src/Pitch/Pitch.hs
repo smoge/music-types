@@ -1,9 +1,9 @@
-{-# LANGUAGE TemplateHaskell, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-
+{-# LANGUAGE TemplateHaskell #-}
 
 module Pitch.Pitch
   ( NoteName (..),
@@ -23,28 +23,22 @@ module Pitch.Pitch
     Alterable (..),
     Octave (..),
     fromOctave,
-    ToLilyString (..)
+    ToLilyString (..),
   )
 where
-
-import Pitch.Accidental
-
 
 import Control.Lens
 -- import Control.Lens.TH
 -- import Data.Fixed (mod')
-import Data.Maybe 
-import Data.Ratio 
 
-import Data.List 
-import Test.QuickCheck
-import Data.Ord
-
-import qualified Data.Map.Strict as MapS
-
-
-
+import Data.List
 import qualified Data.Map as Map
+import qualified Data.Map.Strict as MapS
+import Data.Maybe
+import Data.Ord
+import Data.Ratio
+import Pitch.Accidental
+import Test.QuickCheck
 
 data NoteName = C | D | E | F | G | A | B deriving (Eq, Enum, Ord, Show)
 
@@ -53,18 +47,15 @@ type PitchVal = Rational
 data PitchClass = PitchClass
   { _noteName :: NoteName,
     _accidental :: Pitch.Accidental.Accidental
-  } deriving (Show)
-
-
+  }
+  deriving (Show)
 
 instance Ord PitchClass where
   compare :: PitchClass -> PitchClass -> Ordering
   compare pc1 pc2 = compare (pitchClassVal pc1) (pitchClassVal pc2)
 
 instance Eq PitchClass where
-  pc1 == pc2 =  pitchClassVal pc1 == pitchClassVal pc2
-
-
+  pc1 == pc2 = pitchClassVal pc1 == pitchClassVal pc2
 
 pitchClassVal :: PitchClass -> Pitch.Accidental.Rq
 pitchClassVal pc = base + acVal
@@ -73,7 +64,7 @@ pitchClassVal pc = base + acVal
     acVal = _accSemitones (_accidental pc) :: Pitch.Accidental.Rq
 
 noteNameToRational :: [(NoteName, Pitch.Accidental.Rq)]
-noteNameToRational = 
+noteNameToRational =
   [ (C, 0 % 1),
     (D, 2 % 1),
     (E, 4 % 1),
@@ -83,24 +74,20 @@ noteNameToRational =
     (B, 11 % 1)
   ]
 
-
-
-
 class Pitchable a where
-    makePitch :: NoteName -> Pitch.Accidental.Accidental -> Octave -> a
+  makePitch :: NoteName -> Pitch.Accidental.Accidental -> Octave -> a
+
 instance Pitchable Pitch where
-    makePitch n acc oct = Pitch { _pitchClass = PitchClass {_noteName = n, _accidental = acc}, _octave = oct } -- Using a default octave, modify as necessary
+  makePitch n acc oct = Pitch {_pitchClass = PitchClass {_noteName = n, _accidental = acc}, _octave = oct} -- Using a default octave, modify as necessary
 
 class PitchClassable a where
-    createPitchClass :: NoteName -> Pitch.Accidental.Accidental -> a
+  createPitchClass :: NoteName -> Pitch.Accidental.Accidental -> a
 
 instance PitchClassable PitchClass where
-    createPitchClass n acc = PitchClass {_noteName = n, _accidental = acc}
+  createPitchClass n acc = PitchClass {_noteName = n, _accidental = acc}
 
 instance PitchClassable Pitch where
-    createPitchClass n acc = Pitch { _pitchClass = PitchClass {_noteName = n, _accidental = acc}, _octave = 4 } -- Using a default octave, modify as necessary
-
-
+  createPitchClass n acc = Pitch {_pitchClass = PitchClass {_noteName = n, _accidental = acc}, _octave = 4} -- Using a default octave, modify as necessary
 
 class Alterable a where
   sharpen :: a -> a
@@ -114,12 +101,11 @@ instance Alterable Accidental where
   quarterSharpen = over semitone (+ (1 % 2))
   quarterFlatten = over semitone (subtract (1 % 2))
 
-
 instance Alterable PitchClass where
   sharpen pc = pc {_accidental = sharpen (_accidental pc)}
-  flatten pc = pc {_accidental =  flatten (_accidental pc)}
-  quarterSharpen pc = pc {_accidental =  quarterSharpen (_accidental pc)}
-  quarterFlatten pc = pc {_accidental =  quarterFlatten (_accidental pc)}
+  flatten pc = pc {_accidental = flatten (_accidental pc)}
+  quarterSharpen pc = pc {_accidental = quarterSharpen (_accidental pc)}
+  quarterFlatten pc = pc {_accidental = quarterFlatten (_accidental pc)}
 
 instance Alterable Pitch where
   sharpen p = p {_pitchClass = sharpen (_pitchClass p)}
@@ -128,7 +114,7 @@ instance Alterable Pitch where
   quarterFlatten p = p {_pitchClass = quarterFlatten (_pitchClass p)}
 
 noteNameToRational'' :: [(NoteName, Rational)]
-noteNameToRational'' = 
+noteNameToRational'' =
   [ (C, 0 % 1),
     (D, 2 % 1),
     (E, 4 % 1),
@@ -138,65 +124,57 @@ noteNameToRational'' =
     (B, 11 % 1)
   ]
 
-
-
-
-
--- 
+--
 
 noteNameToRational' :: Map.Map NoteName Pitch.Accidental.Rq
-noteNameToRational' = Map.fromList
-  [ (C, 0 % 1),
-    (D, 2 % 1),
-    (E, 4 % 1),
-    (F, 5 % 1),
-    (G, 7 % 1),
-    (A, 9 % 1),
-    (B, 11 % 1)
-  ]
+noteNameToRational' =
+  Map.fromList
+    [ (C, 0 % 1),
+      (D, 2 % 1),
+      (E, 4 % 1),
+      (F, 5 % 1),
+      (G, 7 % 1),
+      (A, 9 % 1),
+      (B, 11 % 1)
+    ]
 
 pitchClassVal' :: PitchClass -> Pitch.Accidental.Rq
 pitchClassVal' pitchClass = base + ac
   where
     base = fromMaybe (error "NoteName not found") $ Map.lookup nn noteNameToRational'
-    nn =  _noteName pitchClass 
-    ac = (_accidental pitchClass) ^.  semitone
+    nn = _noteName pitchClass
+    ac = (_accidental pitchClass) ^. semitone
 
-
-
-{- 
+{-
 base = case lookup nn noteNameToRational of
   Just val -> val
   Nothing -> 0 % 1
  -}
- 
+
 newtype Octave = Octave Int
   deriving (Eq, Show)
 
 instance Num Octave where
   (+) (Octave n1) (Octave n2) = Octave (n1 + n2)
   (-) (Octave n1) (Octave n2) = Octave (n1 - n2)
-  (*) (Octave n1) (Octave n2) = undefined 
-  abs (Octave n) = undefined 
+  (*) (Octave n1) (Octave n2) = undefined
+  abs (Octave n) = undefined
   signum (Octave n) = Octave (signum n)
   fromInteger n = Octave (fromInteger n)
- 
-
 
 fromOctave :: Octave -> Int
 fromOctave (Octave n) = n
 
-
 createOctave :: Int -> Octave
-createOctave     = Octave 
+createOctave = Octave
 
 -- mkOct
 
 data Pitch = Pitch
   { _pitchClass :: PitchClass,
     _octave :: Octave
-  } deriving (Show)
- 
+  }
+  deriving (Show)
 
 makeLenses ''Pitch
 
@@ -204,28 +182,37 @@ instance Ord Pitch where
   compare :: Pitch -> Pitch -> Ordering
   compare p1 p2 = compare (pitchVal''' p1) (pitchVal''' p2)
 
-instance Eq Pitch where
-  p1 == p2 =  pitchVal p1 == pitchVal p2
+-- instance Eq Pitch where
+--   p1 == p2 = pitch p1 == pitch p2
+
+
+class HasPitch a where
+  pitch :: a -> Pitch
+
+instance HasPitch Pitch where
+  pitch = id
 
 
 (=~) :: (HasPitch a) => a -> a -> Bool
-a =~ b = pitch a == pitch b
+p1 =~ p2 = (pitchVal''' (pitch p1)) == (pitchVal''' (pitch p2))
+
+instance Eq Pitch where
+  p1 == p2 = (_pitchClass p1 == _pitchClass p2) && (_octave p1 == _octave p2)
 
 -- instance HasPitch Pitch where
 --   pitch = id
 
-createPitch :: PitchClass -> Int ->  Pitch
+createPitch :: PitchClass -> Int -> Pitch
 createPitch pc oct = Pitch pc (Octave oct)
 
-mkP :: PitchClass -> Int ->  Pitch
+mkP :: PitchClass -> Int -> Pitch
 mkP pc oct = Pitch pc (Octave oct)
-
 
 mkPitch :: PitchClass -> Int -> Pitch
 mkPitch = createPitch
 
 isValidPitchClass :: PitchClass -> Bool
-isValidPitchClass pc = (_noteName pc)  `elem` [C, D, E, F, G, A, B]
+isValidPitchClass pc = (_noteName pc) `elem` [C, D, E, F, G, A, B]
 
 -- isValidOctave :: Int -> Bool
 -- isValidOctave oct = oct >= -1 && oct <= 10
@@ -245,12 +232,7 @@ octaveDown pitch = setOctave (getOctave pitch - 1) pitch
 
 instance HasOctave Pitch where
   getOctave = _octave
-  setOctave octave pitch = pitch { _octave = octave }
-
-
-
-
-
+  setOctave octave pitch = pitch {_octave = octave}
 
 isValidOctave :: Int -> Bool
 isValidOctave oct = oct >= -1 && oct <= 10
@@ -258,13 +240,11 @@ isValidOctave oct = oct >= -1 && oct <= 10
 octaveVal :: Octave -> Int
 octaveVal (Octave oct) = (oct - 4) * 12
 
-
 pitchVal''' :: Pitch -> Rational
 pitchVal''' pitch_ = pcVal + fromIntegral octVal
   where
     pcVal = pitchClassVal (pitch_ ^. pitchClass)
     octVal = octaveVal (pitch_ ^. octave)
-
 
 pitchVal :: Pitch -> PitchVal
 pitchVal pitch_ = pcVal + fromIntegral octVal
@@ -272,31 +252,24 @@ pitchVal pitch_ = pcVal + fromIntegral octVal
     pcVal = pitchClassVal (pitch_ ^. pitchClass)
     octVal = octaveVal (pitch_ ^. octave)
 
-
-{- 
+{-
 >>> gts6 = createPitch' G twelfthSharp 6
 >>> pitchVal' gts6
 
  -}
 
-
-
-
 createPitch' :: NoteName -> Pitch.Accidental.Accidental -> Int -> Pitch
 createPitch' pc acc = createPitch (createPitchClass pc acc)
-
-
 
 -- mkPC
 mkPC :: NoteName -> Pitch.Accidental.Accidental -> PitchClass
 mkPC n acc = PitchClass {_noteName = n, _accidental = acc}
 
-
 allPitchClasses :: [PitchClass]
 allPitchClasses = [mkPC note acc | note <- [C .. B], acc <- accidentals]
 
 allPitches :: [Pitch]
-allPitches = [createPitch pc oct | pc <- allPitchClasses, oct <- [1.. 9]]
+allPitches = [createPitch pc oct | pc <- allPitchClasses, oct <- [1 .. 9]]
 
 -- Define your lookup table
 pitchValToPitchMap :: MapS.Map PitchVal Pitch
@@ -306,14 +279,12 @@ pitchValToPitchMap = MapS.fromList [(pitchVal p, p) | p <- allPitches]
 pitchValtoPitch :: PitchVal -> Maybe Pitch
 pitchValtoPitch pv = MapS.lookup pv pitchValToPitchMap
 
-
 pitchValToPitchesMap :: MapS.Map PitchVal [Pitch]
 pitchValToPitchesMap = MapS.fromListWith (++) [(pitchVal p, [p]) | p <- allPitches]
 
 -- Function to convert from PitchVal to list of corresponding pitches
 pitchValToPitches :: PitchVal -> [Pitch]
 pitchValToPitches pv = MapS.findWithDefault [] pv pitchValToPitchesMap
-
 
 -- Function to check if an Accidental is natural
 isNatural :: Accidental -> Bool
@@ -333,7 +304,6 @@ comparePitches p1 p2
     absSemitones1 = abs . _accSemitones . acc1
     absSemitones2 = abs . _accSemitones . acc2
 
-
 -- Function to determine the priority of an accidental
 accidentalPriority :: Accidental -> Int
 accidentalPriority natural = 0
@@ -342,8 +312,6 @@ accidentalPriority flat = 2
 accidentalPriority quarterSharp = 3
 accidentalPriority quarterFlat = 4
 accidentalPriority _ = 5
-
-
 
 -- Function to compare two pitches based on the rules
 comparePitches' :: Pitch -> Pitch -> Ordering
@@ -359,18 +327,16 @@ comparePitches' p1 p2
 -- Function to select a pitch based on the rules
 selectPitch' :: [Pitch] -> Pitch
 selectPitch' = minimumBy comparePitches
+
 -- Function to select a pitch based on the rules
 selectPitch :: [Pitch] -> Pitch
 selectPitch = minimumBy comparePitches
 
-
 pitchValToSelectedPitch :: PitchVal -> Pitch
 pitchValToSelectedPitch pv = selectPitch $ pitchValToPitches pv
 
-pitchValToSelectedPitch':: PitchVal -> Pitch
+pitchValToSelectedPitch' :: PitchVal -> Pitch
 pitchValToSelectedPitch' pv = selectPitch' $ pitchValToPitches pv
-
-
 
 {-
 
@@ -389,7 +355,7 @@ fqs = createPitchClass F quarterSharp
 pitchClassVal fqs
 -- 11 % 2
 
-middleC = createPitch c 4 
+middleC = createPitch c 4
 fSharp5 = createPitch fs 5
 -- Pitch {_pitchClass = PitchClass {_noteName = F, _accidental = Accidental {_accName = Sharp, _accAbbreviation = "s", _accArrow = Nothing, _accSemitones = 1 % 1}}, _octave = Octave 5}
 
@@ -400,9 +366,7 @@ pitchVal fSharp5
 -- 18 % 1
  -}
 
-
-
-{- 
+{-
 pitch middleC
 
 c = createPitchClass C natural
@@ -419,12 +383,11 @@ updatedPitchClass = c & semitone .~ 4.5
 updatedPitchClass :: PitchClass
 updatedPitchClass = c & accidental . semitone .~ 4.5
 
-
-updatedPitch :: Pitch 
+updatedPitch :: Pitch
 updatedPitch = middleC @ semitone .~ 4.5
 
 -- Accessing fields using lenses
-cName = c ^. noteName 
+cName = c ^. noteName
 -- C
 
 cAcc = c ^. accidental
@@ -462,11 +425,8 @@ modifiedMiddleCNameAcc = middleC & pitchClass . noteName .~ D & pitchClass . acc
 
  -}
 
-
 -- pitchValtoPitch :: PitchVal -> Pitch
--- pitchValtoPitch pv = 
-
-
+-- pitchValtoPitch pv =
 
 {- class HasPitch a where
   pitchSemitones :: Lens' a Rational
@@ -482,7 +442,6 @@ instance HasPitch Pitch where
 instance HasPitch PitchClass where
   pitchSemitones = accidental . semitone
  -}
-
 
 -- pitchToLilyPond :: Pitch -> String
 -- pitchToLilyPond pitch = noteNameStr ++ accidentalStr ++ octaveStr
@@ -500,7 +459,6 @@ instance HasPitch PitchClass where
 
 -- ------------------- pitchToLilyPond :: Pitch -> String ------------------- --
 
-
 pitchToLily pitch = noteNameStr ++ accidentalStr ++ octaveStr
   where
     noteNameStr = case _noteName (_pitchClass pitch) of
@@ -515,47 +473,45 @@ pitchToLily pitch = noteNameStr ++ accidentalStr ++ octaveStr
       Accidental Natural _ _ _ -> ""
       Accidental Sharp _ _ _ -> "is"
       Accidental Flat _ _ _ -> "es"
-      Accidental QuarterSharp  _ _ _ -> "ih"
-      Accidental QuarterFlat  _ _ _ -> "eh"
+      Accidental QuarterSharp _ _ _ -> "ih"
+      Accidental QuarterFlat _ _ _ -> "eh"
       _ -> "todo"
-    octaveOffset =  (fromOctave $ _octave pitch) - 4 :: Int
-    octaveStr = if octaveOffset > 0
-                then replicate octaveOffset '\''
-                else replicate (-octaveOffset) ','
-
-
+    octaveOffset = (fromOctave $ _octave pitch) - 4 :: Int
+    octaveStr =
+      if octaveOffset > 0
+        then replicate octaveOffset '\''
+        else replicate (-octaveOffset) ','
 
 class ToLilyString a where
-    toLilyString :: a -> String
+  toLilyString :: a -> String
 
 instance ToLilyString NoteName where
-    toLilyString = \case
-        C -> "c"
-        D -> "d"
-        E -> "e"
-        F -> "f"
-        G -> "g"
-        A -> "a"
-        B -> "b"
+  toLilyString = \case
+    C -> "c"
+    D -> "d"
+    E -> "e"
+    F -> "f"
+    G -> "g"
+    A -> "a"
+    B -> "b"
 
 instance ToLilyString Octave where
-    toLilyString (Octave n) = 
-        let octaveOffset = n - 4
-        in if octaveOffset > 0
-           then replicate octaveOffset '\''
-           else replicate (-octaveOffset) ','
+  toLilyString (Octave n) =
+    let octaveOffset = n - 4
+     in if octaveOffset > 0
+          then replicate octaveOffset '\''
+          else replicate (-octaveOffset) ','
 
 instance ToLilyString Accidental where
-    toLilyString = \case
-        Accidental Natural _ _ _ -> ""
-        Accidental Sharp _ _ _ -> "is"
-        Accidental Flat _ _ _ -> "es"
-        Accidental QuarterSharp  _ _ _ -> "ih"
-        Accidental QuarterFlat  _ _ _ -> "eh"
-        Accidental ThreeQuartersSharp  _ _ _ -> "isih"
-        Accidental ThreeQuartersFlat  _ _ _ -> "eseh"
-        _ -> "todo"
-
+  toLilyString = \case
+    Accidental Natural _ _ _ -> ""
+    Accidental Sharp _ _ _ -> "is"
+    Accidental Flat _ _ _ -> "es"
+    Accidental QuarterSharp _ _ _ -> "ih"
+    Accidental QuarterFlat _ _ _ -> "eh"
+    Accidental ThreeQuartersSharp _ _ _ -> "isih"
+    Accidental ThreeQuartersFlat _ _ _ -> "eseh"
+    _ -> "todo"
 
 instance ToLilyString Pitch where
-    toLilyString = \p -> (toLilyString $ _noteName $ _pitchClass p) ++ (toLilyString $ _accidental $ _pitchClass p) ++ (toLilyString $ _octave p)
+  toLilyString = \p -> (toLilyString $ _noteName $ _pitchClass p) ++ (toLilyString $ _accidental $ _pitchClass p) ++ (toLilyString $ _octave p)
