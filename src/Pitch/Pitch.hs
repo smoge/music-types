@@ -155,18 +155,20 @@ newtype Octave = Octave Int
   deriving (Eq, Show)
 
 instance Num Octave where
-  (+) (Octave n1) (Octave n2) = Octave (n1 + n2)
-  (-) (Octave n1) (Octave n2) = Octave (n1 - n2)
-  (*) (Octave n1) (Octave n2) = undefined
-  abs (Octave n) = undefined
+  (Octave n1) + (Octave n2) = Octave (n1 + n2)
+  (Octave n1) - (Octave n2) = Octave (n1 - n2)
+  (Octave n1) * (Octave n2) = error "Multiplication not defined"
+  abs (Octave n) = Octave (abs n)
   signum (Octave n) = Octave (signum n)
   fromInteger n = Octave (fromInteger n)
+
+-- Utility functions
+toOctave :: Int -> Octave
+toOctave = Octave
 
 fromOctave :: Octave -> Int
 fromOctave (Octave n) = n
 
-createOctave :: Int -> Octave
-createOctave = Octave
 
 -- mkOct
 
@@ -182,9 +184,6 @@ instance Ord Pitch where
   compare :: Pitch -> Pitch -> Ordering
   compare p1 p2 = compare (pitchVal''' p1) (pitchVal''' p2)
 
--- instance Eq Pitch where
---   p1 == p2 = pitch p1 == pitch p2
-
 
 class HasPitch a where
   pitch :: a -> Pitch
@@ -199,8 +198,6 @@ p1 =~ p2 = (pitchVal''' (pitch p1)) == (pitchVal''' (pitch p2))
 instance Eq Pitch where
   p1 == p2 = (_pitchClass p1 == _pitchClass p2) && (_octave p1 == _octave p2)
 
--- instance HasPitch Pitch where
---   pitch = id
 
 createPitch :: PitchClass -> Int -> Pitch
 createPitch pc oct = Pitch pc (Octave oct)
